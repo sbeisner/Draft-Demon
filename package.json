@@ -1,0 +1,24 @@
+{
+  "name": "draft-demon",
+  "version": "0.1.0",
+  "description": "Draft Demon — goal-aligned writing app. FastAPI backend, React frontend, Electron shell.",
+  "main": "electron/main.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "setup": "bash setup.sh",
+    "dev:backend": "cd backend && .venv/bin/python -m uvicorn app:app --reload --port 8741",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:electron": "wait-on tcp:5173 http-get://localhost:8741/api/health && ELECTRON_DEV=1 electron .",
+    "dev": "concurrently -k -n backend,web,electron -c blue,green,magenta \"npm:dev:backend\" \"npm:dev:frontend\" \"npm:dev:electron\"",
+    "dev:web": "concurrently -k -n backend,web -c blue,green \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "build:frontend": "cd frontend && npm run build",
+    "start": "ELECTRON_DEV= electron ."
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "electron": "^33.2.1",
+    "wait-on": "^8.0.1"
+  }
+}
