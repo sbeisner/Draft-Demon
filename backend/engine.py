@@ -124,25 +124,37 @@ def apply_word_change(p, old_total: int, new_total: int, on: str | None = None) 
         # Words added — always earns XP and lifetime credit.
         p.lifetime_words += delta
         p.xp += delta
+    elif delta < 0:
+        # Words removed — reverse the XP they earned so deletion can't be farmed
+        # (paste 1000 / delete / repeat). Split the removal into:
+        #   * today's own additions (above the locked baseline) — un-credit 1:1,
+        #     no penalty, no streak break: that's just normal editing.
+        #   * committed past work (below the baseline) — the destructive case:
+        #     2x penalty and a broken streak, on top of losing the credit.
+        removed = -delta
+        cut_below = max(0, p.baseline_words - new_total)
+        newly_cut_past = max(0, cut_below - p.cut_debt)   # past work freshly destroyed
+        into_past = min(removed, newly_cut_past)
+        today_removed = removed - into_past
+
+        # un-credit today's own words (no extra punishment)
+        p.xp = max(0, p.xp - today_removed)
+
+        # destroying committed past work hurts extra
+        if into_past > 0:
+            penalty = into_past * PENALTY_MULTIPLIER
+            p.xp = max(0, p.xp - penalty)
+            event["penalty_xp"] = penalty
+            event["cut_into_past"] = into_past
+            if p.streak > 0 or p.last_met_day == on:
+                event["broke_streak"] = True
+            p.streak = 0
+            p.last_met_day = None
 
     # Today's net progress above the locked baseline.
     net_today = new_total - p.baseline_words
     p.daily_log[on] = net_today  # may be negative; compute_state floors display at 0
-
-    # Are we below the baseline (eating into committed past work)?
-    cut_below = max(0, p.baseline_words - new_total)
-    if cut_below > p.cut_debt:
-        # Newly destroyed committed work -> penalty.
-        newly_cut = cut_below - p.cut_debt
-        penalty = newly_cut * PENALTY_MULTIPLIER
-        p.xp = max(0, p.xp - penalty)
-        event["penalty_xp"] = penalty
-        event["cut_into_past"] = newly_cut
-        if p.streak > 0 or p.last_met_day == on:
-            event["broke_streak"] = True
-        p.streak = 0
-        p.last_met_day = None
-    p.cut_debt = cut_below
+    p.cut_debt = max(0, p.baseline_words - new_total)
 
     # Streak: met today's goal? (only possible when not in deficit)
     if p.cut_debt == 0:

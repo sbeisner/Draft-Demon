@@ -34,7 +34,7 @@ button{font-family:inherit}
 .col-head{padding:12px 14px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--txt3);display:flex;justify-content:space-between;align-items:center}
 .add{cursor:pointer;color:var(--txt3);font-size:16px;line-height:1;background:none;border:none}
 .add:hover{color:var(--accent)}
-.proj{padding:10px 14px;cursor:pointer;border-left:2px solid transparent}
+.proj{position:relative;padding:10px 14px;cursor:pointer;border-left:2px solid transparent}
 .proj:hover{background:var(--bg3)}
 .proj.active{background:var(--bg3);border-left-color:var(--accent)}
 .proj .t{font-weight:600;font-size:13px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -44,11 +44,18 @@ button{font-family:inherit}
 
 /* sheets */
 .sheets{width:230px;background:var(--bg);border-right:1px solid var(--line);flex-shrink:0;overflow-y:auto}
-.sheet{padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--line);border-left:2px solid transparent}
+.sheet{position:relative;padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--line);border-left:2px solid transparent}
 .sheet:hover{background:var(--bg2)}
 .sheet.active{background:var(--bg2);border-left-color:var(--accent)}
 .sheet .t{font-weight:500;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sheet .meta{font-size:11px;color:var(--txt3)}
+
+/* hover-reveal delete for project / chapter rows */
+.row-del{position:absolute;top:8px;right:8px;width:18px;height:18px;padding:0;display:flex;
+  align-items:center;justify-content:center;border:none;border-radius:4px;background:none;
+  color:var(--txt3);font-size:11px;line-height:1;cursor:pointer;opacity:0;transition:opacity .12s}
+.proj:hover .row-del,.sheet:hover .row-del{opacity:1}
+.row-del:hover{background:var(--ring);color:var(--bad,#e5484d)}
 
 /* editor */
 .editor-wrap{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--paper)}

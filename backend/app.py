@@ -132,6 +132,54 @@ def add_sheet(pid: int, body: SheetIn, db: Session = Depends(get_db)):
     return serialize(p)
 
 
+@app.delete("/api/projects/{pid}/sheets/{sid}")
+def delete_sheet(pid: int, sid: int, db: Session = Depends(get_db)):
+    """Delete a chapter. Any written content is preserved in Cuts first, so
+    removing a chapter is recoverable — same philosophy as stashing. The
+    committed baseline is lowered to match, so this never registers as the
+    destructive case (no doubled penalty, no streak break). The chapter's words
+    do lose their XP credit, though: they've left the draft, and keeping the XP
+    would make deleting-and-rewriting a free way to farm levels."""
+    p = get_project(db, pid)
+    sheet = next((s for s in p.sheets if s.id == sid), None)
+    if not sheet:
+        raise HTTPException(404, "Sheet not found")
+
+    old_total = total_words(p)
+    today = ge.today_key()
+    if p.baseline_date != today:               # roll the day forward first
+        p.baseline_date = today
+        p.baseline_words = old_total
+        p.cut_debt = 0
+
+    removed_words = sheet.words
+    # preserve any written words so the deletion isn't destructive
+    if sheet.words > 0:
+        p.cuts.append(models.Cut(
+            project_id=p.id, sheet_title=sheet.title, text=sheet.text,
+            words=sheet.words, created=datetime.now().isoformat(timespec="minutes")))
+
+    p.sheets.remove(sheet)                      # delete-orphan removes the row
+    for i, s in enumerate(p.sheets):           # re-pack positions
+        s.position = i
+
+    # lower the committed line so the shrink isn't counted as destruction
+    new_total = total_words(p)
+    p.baseline_words = min(p.baseline_words, new_total)
+    p.cut_debt = max(0, p.baseline_words - new_total)
+    p.daily_log[today] = new_total - p.baseline_words
+
+    # un-credit the deleted chapter's XP (gentle: 1:1, no penalty, no streak break)
+    uncredited = min(p.xp, removed_words)
+    p.xp -= uncredited
+
+    db.commit()
+    db.refresh(p)
+    out = serialize(p)
+    out["uncredited"] = uncredited
+    return out
+
+
 @app.put("/api/projects/{pid}/sheets/{sid}")
 def save_sheet(pid: int, sid: int, body: SheetSave, db: Session = Depends(get_db)):
     """Core write path. Recomputes words and runs the accounting engine."""
@@ -167,8 +215,10 @@ def stash_from_sheet(pid: int, sid: int, body: StashIn, db: Session = Depends(ge
 
     Because the words are preserved (not destroyed), this lowers the committed
     baseline by the amount removed instead of registering it as clawing back
-    past work. Net effect: today's progress falls, but no XP loss and no streak
-    break. That's the whole point — give 'this is terrible' a safe outlet."""
+    past work. The words' XP credit is removed (they've left the draft, so they
+    can't keep counting — otherwise stashing would be a free XP farm), but it's
+    a plain 1:1 un-credit: no doubled penalty and no broken streak. That's the
+    whole point — give 'this is terrible' a safe, gentle outlet."""
     p = get_project(db, pid)
     sheet = next((s for s in p.sheets if s.id == sid), None)
     if not sheet:
@@ -194,11 +244,17 @@ def stash_from_sheet(pid: int, sid: int, body: StashIn, db: Session = Depends(ge
     p.baseline_words = min(p.baseline_words, new_total)
     p.cut_debt = max(0, p.baseline_words - new_total)   # -> 0
     p.daily_log[today] = new_total - p.baseline_words
+
+    # un-credit the stashed words' XP (gentle: 1:1, no penalty, no streak break)
+    uncredited = min(p.xp, c.words)
+    p.xp -= uncredited
+
     db.commit()
     db.refresh(p)
     out = serialize(p)
     out["event"] = {"penalty_xp": 0, "broke_streak": False, "cut_into_past": 0,
-                    "goal_met_now": False, "stashed": c.words, "badges_earned": []}
+                    "goal_met_now": False, "stashed": c.words, "uncredited": uncredited,
+                    "badges_earned": []}
     return out
 
 

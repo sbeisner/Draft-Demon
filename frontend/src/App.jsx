@@ -97,7 +97,9 @@ export default function App() {
     if (!active || !activeSheet) return;
     const r = await api.stash(active.id, activeSheet.id, { new_text: newText, removed_text: removed });
     replaceProject(r);
-    toast(`✂ Stashed ${fmt(countWords(removed))} words — safe & penalty-free`, "good");
+    const lost = r.event?.uncredited || 0;
+    const tail = lost ? ` · −${fmt(lost)} XP, no penalty` : "";
+    toast(`✂ Stashed ${fmt(countWords(removed))} words to Cuts${tail}`, "good");
   };
 
   const restore = async (cid) => {
@@ -121,6 +123,43 @@ export default function App() {
     replaceProject(r);
     setActiveSheetId(r.sheets[r.sheets.length - 1].id);
     setRev((v) => v + 1);
+  };
+
+  const deleteSheet = async (sheet, e) => {
+    e?.stopPropagation();
+    const msg = sheet.words > 0
+      ? `Delete “${sheet.title}”? Its ${fmt(sheet.words)} words will be moved to Cuts so you can restore them.`
+      : `Delete “${sheet.title}”?`;
+    if (!window.confirm(msg)) return;
+    try {
+      const r = await api.deleteSheet(active.id, sheet.id);
+      replaceProject(r);
+      if (activeSheetId === sheet.id) setActiveSheetId(r.sheets[0]?.id ?? null);
+      setRev((v) => v + 1);
+      const lost = r.uncredited || 0;
+      toast(sheet.words > 0
+        ? `Chapter deleted — ${fmt(sheet.words)} words saved to Cuts${lost ? ` · −${fmt(lost)} XP` : ""}`
+        : "Chapter deleted", "good");
+    } catch (e) {
+      toast("Delete failed — is the backend running?", "bad");
+    }
+  };
+
+  const deleteProject = async (p, e) => {
+    e?.stopPropagation();
+    if (!window.confirm(`Delete “${p.title}” and everything in it? This can't be undone.`)) return;
+    try {
+      await api.remove(p.id);
+      const remaining = projects.filter((x) => x.id !== p.id);
+      setProjects(remaining);
+      if (activeId === p.id) {
+        if (remaining.length) selectProject(remaining[0]);
+        else { setActiveId(null); setActiveSheetId(null); }
+      }
+      toast("Project deleted", "good");
+    } catch (e) {
+      toast("Delete failed — is the backend running?", "bad");
+    }
   };
 
   const saveGoal = async (data) => {
@@ -188,6 +227,7 @@ export default function App() {
             const pct = p.state.overall_pct;
             return (
               <div key={p.id} className={`proj ${p.id === activeId ? "active" : ""}`} onClick={() => selectProject(p)}>
+                <button className="row-del" title="Delete project" onClick={(e) => deleteProject(p, e)}>✕</button>
                 <div className="t">{p.title}</div>
                 <div className="s">{fmt(p.state.total_words)} / {fmt(p.target)} · {pct}%</div>
                 <div className="bar"><i style={{ width: `${pct}%` }} /></div>
@@ -204,6 +244,7 @@ export default function App() {
           </div>
           {active?.sheets.map((s) => (
             <div key={s.id} className={`sheet ${s.id === activeSheet?.id ? "active" : ""}`} onClick={() => setActiveSheetId(s.id)}>
+              <button className="row-del" title="Delete chapter" onClick={(e) => deleteSheet(s, e)}>✕</button>
               <div className="t">{s.title}</div>
               <div className="meta">{fmt(s.words)} words</div>
             </div>

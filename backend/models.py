@@ -3,7 +3,12 @@
 Key idea behind the anti-deletion design:
 
 * `lifetime_words`  — gross words ever ADDED to the manuscript. Never goes down.
-                      Drives XP earned. Writing is always rewarded.
+                      An honesty stat ("words ever written"); does NOT drive XP.
+* `xp`              — tracks words you've actually KEPT. Adding words earns XP;
+                      removing them un-credits it (down to a floor of 0) so you
+                      can't paste/delete/repeat to farm levels. Removing today's
+                      own work is a plain 1:1 un-credit (normal editing); cutting
+                      *committed past work* costs an extra penalty (see cut_debt).
 * `baseline_words`  — the manuscript's total word count at the START of today.
                       Everything at/below this line is "committed" past work.
 * daily progress    — counts only NET NEW words above today's baseline. Deleting
@@ -12,7 +17,7 @@ Key idea behind the anti-deletion design:
 * cut_debt          — how far the manuscript currently sits BELOW today's baseline,
                       i.e. how much committed past work you've clawed back. Digging
                       deeper here is the "delete everything" trap and it costs XP
-                      and breaks the streak.
+                      at 2x and breaks the streak.
 """
 from datetime import date
 from sqlalchemy import String, Integer, Text, Date, ForeignKey, JSON
