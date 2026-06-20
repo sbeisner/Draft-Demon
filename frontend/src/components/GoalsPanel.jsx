@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import Inkubus from "./Inkubus.jsx";
 
 const fmt = (n) => (n ?? 0).toLocaleString();
@@ -15,12 +15,21 @@ function inkubusLine(st) {
   return "On track. Keep the streak alive!";
 }
 
-export default function GoalsPanel({ project, onEditGoal, onToggleMilestone }) {
+export default function GoalsPanel({ project, onEditGoal, onToggleMilestone, onAddTask, onToggleTask, onDeleteTask, onJumpSheet }) {
   const st = project.state;
   const lvl = st.level;
   const circ = 2 * Math.PI * 65;
   const off = circ * (1 - st.day_pct / 100);
   const mood = moodFor(st);
+  const [newTask, setNewTask] = useState("");
+  const tasks = project.tasks || [];
+  const placeholders = project.placeholders || [];
+  const openTasks = tasks.filter((t) => !t.done).length;
+
+  const submitTask = (e) => {
+    e.preventDefault();
+    if (newTask.trim()) { onAddTask(newTask); setNewTask(""); }
+  };
 
   const paceTxt = st.in_deficit
     ? `⚠️ ${fmt(st.cut_debt)} words below your locked total`
@@ -62,6 +71,38 @@ export default function GoalsPanel({ project, onEditGoal, onToggleMilestone }) {
         </div>
         <div className="sub" style={{ color: paceColor }}>{paceTxt}</div>
       </div>
+
+      <div className="gsec">
+        <h3>Tasks{openTasks ? ` · ${openTasks} to do` : ""}</h3>
+        <form className="task-add" onSubmit={submitTask}>
+          <input value={newTask} onChange={(e) => setNewTask(e.target.value)}
+            placeholder="Break it down… e.g. 'Outline Act 1 beats'" />
+          <button type="submit" title="Add task">＋</button>
+        </form>
+        {tasks.length === 0 && <div className="empty">No tasks yet. Small boxes are easier to check.</div>}
+        {tasks.map((t) => (
+          <div key={t.id} className={`tk ${t.done ? "done" : ""}`}>
+            <button className="tk-box" onClick={() => onToggleTask(t.id, !t.done)} title={t.done ? "Mark not done" : "Mark done"}>
+              {t.done ? "✓" : ""}
+            </button>
+            <span className="tk-text" onClick={() => onToggleTask(t.id, !t.done)}>{t.text}</span>
+            <button className="tk-del" onClick={() => onDeleteTask(t.id)} title="Delete task">✕</button>
+          </div>
+        ))}
+      </div>
+
+      {placeholders.length > 0 && (
+        <div className="gsec">
+          <h3>Placeholders · {placeholders.length}</h3>
+          <div className="ph-hint">Unresolved <code>[brackets]</code> in your chapters — click to jump.</div>
+          {placeholders.map((ph, i) => (
+            <div key={i} className="ph" onClick={() => onJumpSheet(ph.sheet_id)}>
+              <span className="ph-text">[{ph.text}]</span>
+              <span className="ph-where">{ph.sheet_title}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="gsec">
         <h3>Momentum</h3>

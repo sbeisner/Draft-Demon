@@ -129,6 +129,32 @@ export default function App() {
     replaceProject(r);
   };
 
+  const toggleInclude = async (include) => {
+    if (!active || !activeSheet) return;
+    const r = await api.setInclude(active.id, activeSheet.id, include);
+    replaceProject(r);
+    toast(include ? "✓ Counts toward your manuscript" : "✕ Excluded — planning only", "good");
+  };
+
+  const addTask = async (text) => {
+    if (!active || !text.trim()) return;
+    replaceProject(await api.addTask(active.id, text.trim()));
+  };
+  const toggleTask = async (tid, done) => {
+    if (!active) return;
+    const r = await api.updateTask(active.id, tid, { done });
+    replaceProject(r);
+    if (r.event?.task_done) toast("✓ Box checked — Inkubus approves! +20 XP", "good");
+  };
+  const deleteTask = async (tid) => {
+    if (!active) return;
+    replaceProject(await api.deleteTask(active.id, tid));
+  };
+  const jumpToSheet = (sid) => {
+    setShowCuts(false);
+    setActiveSheetId(sid);
+  };
+
   const addSheet = async () => {
     const r = await api.addSheet(active.id, { title: `Chapter ${active.sheets.length + 1}` });
     replaceProject(r);
@@ -256,10 +282,10 @@ export default function App() {
             {active && <button className="add" onClick={addSheet}>＋</button>}
           </div>
           {active?.sheets.map((s) => (
-            <div key={s.id} className={`sheet ${s.id === activeSheet?.id ? "active" : ""}`} onClick={() => setActiveSheetId(s.id)}>
+            <div key={s.id} className={`sheet ${s.id === activeSheet?.id ? "active" : ""} ${s.include === false ? "excluded" : ""}`} onClick={() => setActiveSheetId(s.id)}>
               <button className="row-del" title="Delete chapter" onClick={(e) => deleteSheet(s, e)}>✕</button>
-              <div className="t">{s.title}</div>
-              <div className="meta">{fmt(s.words)} words</div>
+              <div className="t">{s.include === false ? "✕ " : ""}{s.title}</div>
+              <div className="meta">{fmt(s.words)} words{s.include === false ? " · excluded" : ""}</div>
             </div>
           ))}
         </div>
@@ -302,6 +328,7 @@ export default function App() {
             sessionWords={sessionWords}
             onSave={save}
             onStash={stash}
+            onToggleInclude={toggleInclude}
           />
         ) : (
           <div className="editor-wrap">
@@ -326,6 +353,10 @@ export default function App() {
               project={active}
               onEditGoal={() => setModal({ isNew: false, initial: active })}
               onToggleMilestone={toggleMilestone}
+              onAddTask={addTask}
+              onToggleTask={toggleTask}
+              onDeleteTask={deleteTask}
+              onJumpSheet={jumpToSheet}
             />
           </div>
         )}

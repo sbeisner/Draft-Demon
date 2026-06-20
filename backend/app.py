@@ -40,7 +40,25 @@ def count_words(text: str) -> int:
 
 
 def total_words(p: models.Project) -> int:
-    return sum(s.words for s in p.sheets)
+    # Only chapters marked for the manuscript count toward the goal; planning /
+    # outline sheets (excluded) don't inflate progress.
+    return sum(s.words for s in p.sheets if s.include_in_manuscript)
+
+
+_PLACEHOLDER_RE = re.compile(r"\[([^\[\]\n]{1,120})\]")
+TASK_XP = 20  # small reward for checking a box
+
+
+def find_placeholders(p: models.Project) -> list:
+    """Scan every chapter for [bracketed placeholders] — Jenn Lyons' trick for
+    leaving 'fix this later' notes inline. They surface as a live to-do list and
+    vanish automatically once the brackets are removed from the text."""
+    out = []
+    for s in sorted(p.sheets, key=lambda x: x.position):
+        text = strip_html(s.text)
+        for m in _PLACEHOLDER_RE.finditer(text):
+            out.append({"sheet_id": s.id, "sheet_title": s.title, "text": m.group(1).strip()})
+    return out
 
 
 def serialize(p: models.Project) -> dict:
@@ -52,9 +70,12 @@ def serialize(p: models.Project) -> dict:
         "start_date": p.start_date.isoformat(), "days_per_week": p.days_per_week,
         "xp": p.xp, "lifetime_words": p.lifetime_words, "streak": p.streak,
         "badges": p.badges or {}, "milestones_done": p.milestones_done or {},
-        "sheets": [{"id": s.id, "title": s.title, "text": s.text, "words": s.words} for s in p.sheets],
+        "sheets": [{"id": s.id, "title": s.title, "text": s.text, "words": s.words,
+                    "include": s.include_in_manuscript} for s in p.sheets],
         "cuts": [{"id": c.id, "sheet_title": c.sheet_title, "text": c.text,
                   "words": c.words, "created": c.created} for c in p.cuts],
+        "tasks": [{"id": t.id, "text": t.text, "done": t.done} for t in p.tasks],
+        "placeholders": find_placeholders(p),
         "phases": ge.PHASES,
         "badge_defs": [{"id": b["id"], "icon": b["icon"], "name": b["name"]} for b in ge.BADGES],
         "state": st,
@@ -301,6 +322,90 @@ def restore_cut(pid: int, cid: int, db: Session = Depends(get_db)):
     out = serialize(p)
     out["restored_text"] = text
     return out
+
+
+class IncludeIn(BaseModel):
+    include: bool
+
+
+@app.put("/api/projects/{pid}/sheets/{sid}/include")
+def set_include(pid: int, sid: int, body: IncludeIn, db: Session = Depends(get_db)):
+    """Mark a chapter included/excluded from the manuscript. Toggling shifts the
+    locked baseline by the same amount the total changes, so flipping a planning
+    sheet in or out never awards XP nor triggers the deletion penalty."""
+    p = get_project(db, pid)
+    sheet = next((s for s in p.sheets if s.id == sid), None)
+    if not sheet:
+        raise HTTPException(404, "Sheet not found")
+
+    old_total = total_words(p)
+    sheet.include_in_manuscript = body.include
+    new_total = total_words(p)
+
+    today = ge.today_key()
+    if p.baseline_date != today:
+        p.baseline_date = today
+        p.baseline_words = old_total
+        p.cut_debt = 0
+    p.baseline_words = max(0, p.baseline_words + (new_total - old_total))
+    p.cut_debt = max(0, p.baseline_words - new_total)
+    p.daily_log[today] = new_total - p.baseline_words
+    db.commit()
+    db.refresh(p)
+    return serialize(p)
+
+
+class TaskIn(BaseModel):
+    text: str = ""
+
+
+class TaskUpdateIn(BaseModel):
+    text: str | None = None
+    done: bool | None = None
+
+
+@app.post("/api/projects/{pid}/tasks")
+def add_task(pid: int, body: TaskIn, db: Session = Depends(get_db)):
+    p = get_project(db, pid)
+    t = models.Task(project_id=p.id, text=body.text.strip(), position=len(p.tasks),
+                    created=datetime.now().isoformat(timespec="minutes"))
+    p.tasks.append(t)
+    db.commit()
+    db.refresh(p)
+    return serialize(p)
+
+
+@app.put("/api/projects/{pid}/tasks/{tid}")
+def update_task(pid: int, tid: int, body: TaskUpdateIn, db: Session = Depends(get_db)):
+    p = get_project(db, pid)
+    t = next((t for t in p.tasks if t.id == tid), None)
+    if not t:
+        raise HTTPException(404, "Task not found")
+    event = {"task_done": False, "xp_delta": 0}
+    if body.text is not None:
+        t.text = body.text.strip()
+    if body.done is not None and body.done != t.done:
+        t.done = body.done
+        # checking a box rewards XP; un-checking gives it back (no farming gain)
+        delta = TASK_XP if t.done else -TASK_XP
+        p.xp = max(0, p.xp + delta)
+        event = {"task_done": t.done, "xp_delta": delta}
+    db.commit()
+    db.refresh(p)
+    out = serialize(p)
+    out["event"] = event
+    return out
+
+
+@app.delete("/api/projects/{pid}/tasks/{tid}")
+def delete_task(pid: int, tid: int, db: Session = Depends(get_db)):
+    p = get_project(db, pid)
+    t = next((t for t in p.tasks if t.id == tid), None)
+    if t:
+        db.delete(t)
+        db.commit()
+        db.refresh(p)
+    return serialize(p)
 
 
 @app.put("/api/projects/{pid}/milestone")

@@ -22,8 +22,12 @@ export const api = {
   deleteSheet: (id, sid) => req("DELETE", `/api/projects/${id}/sheets/${sid}`),
   saveSheet: (id, sid, b) => req("PUT", `/api/projects/${id}/sheets/${sid}`, b),
   stash: (id, sid, b) => req("PUT", `/api/projects/${id}/sheets/${sid}/stash`, b),
+  setInclude: (id, sid, include) => req("PUT", `/api/projects/${id}/sheets/${sid}/include`, { include }),
   restoreCut: (id, cid) => req("POST", `/api/projects/${id}/cuts/${cid}/restore`),
   setMilestone: (id, b) => req("PUT", `/api/projects/${id}/milestone`, b),
+  addTask: (id, text) => req("POST", `/api/projects/${id}/tasks`, { text }),
+  updateTask: (id, tid, b) => req("PUT", `/api/projects/${id}/tasks/${tid}`, b),
+  deleteTask: (id, tid) => req("DELETE", `/api/projects/${id}/tasks/${tid}`),
   health: () => req("GET", "/api/health"),
 };
 
