@@ -1,5 +1,11 @@
 node_modules/
 backend/.venv/
+# build / packaging output
+release/
+macos-widget/build/
+*.dmg
+# preview / screenshot PNGs live at the repo root (functional assets are in subdirs)
+/*.png
 backend/draftdemon.db
 backend/lodestar.db
 backend/lodestar.db-journal
