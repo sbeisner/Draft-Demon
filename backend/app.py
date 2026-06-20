@@ -8,11 +8,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from database import Base, engine, get_db
+from database import Base, engine, get_db, ensure_schema
 import models
 import engine as ge
 
 Base.metadata.create_all(bind=engine)
+ensure_schema()  # additively backfill columns added to models since the DB was created
 app = FastAPI(title="Draft Demon API")
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]

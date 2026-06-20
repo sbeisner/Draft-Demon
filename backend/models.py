@@ -36,6 +36,7 @@ class Project(Base):
     title: Mapped[str] = mapped_column(String, default="Untitled Project")
     subtitle: Mapped[str] = mapped_column(String, default="Novel")
 
+    author: Mapped[str] = mapped_column(String, default="")
     target: Mapped[int] = mapped_column(Integer, default=80000)
     deadline: Mapped[date] = mapped_column(Date)
     start_date: Mapped[date] = mapped_column(Date, default=date.today)
@@ -54,12 +55,16 @@ class Project(Base):
     badges: Mapped[dict] = mapped_column(MutJSON, default=dict)
     milestones_done: Mapped[dict] = mapped_column(MutJSON, default=dict)
     daily_log: Mapped[dict] = mapped_column(MutJSON, default=dict)  # "YYYY-MM-DD" -> net words
+    dictionary: Mapped[dict] = mapped_column(MutJSON, default=dict)  # custom spelling words {word: True}
 
     sheets: Mapped[list["Sheet"]] = relationship(
         back_populates="project", cascade="all, delete-orphan", order_by="Sheet.position"
     )
     cuts: Mapped[list["Cut"]] = relationship(
         back_populates="project", cascade="all, delete-orphan", order_by="Cut.id.desc()"
+    )
+    tasks: Mapped[list["Task"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan", order_by="Task.position"
     )
 
 
@@ -68,9 +73,10 @@ class Sheet(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
     title: Mapped[str] = mapped_column(String, default="Untitled")
-    text: Mapped[str] = mapped_column(Text, default="")
+    text: Mapped[str] = mapped_column(Text, default="")   # stored as HTML
     words: Mapped[int] = mapped_column(Integer, default=0)
     position: Mapped[int] = mapped_column(Integer, default=0)
+    include_in_manuscript: Mapped[bool] = mapped_column(default=True)
     project: Mapped["Project"] = relationship(back_populates="sheets")
 
 
@@ -84,3 +90,23 @@ class Cut(Base):
     words: Mapped[int] = mapped_column(Integer, default=0)
     created: Mapped[str] = mapped_column(String, default="")
     project: Mapped["Project"] = relationship(back_populates="cuts")
+
+
+class Task(Base):
+    """A small, checkable step — the 'break the elephant into boxes' loop."""
+    __tablename__ = "tasks"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+    text: Mapped[str] = mapped_column(String, default="")
+    done: Mapped[bool] = mapped_column(default=False)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    created: Mapped[str] = mapped_column(String, default="")
+    project: Mapped["Project"] = relationship(back_populates="tasks")
+
+
+class AppState(Base):
+    """Single-row table for cross-window app state (shared by the main window
+    and the desktop widget) — e.g. which project is currently active."""
+    __tablename__ = "app_state"
+    id: Mapped[int] = mapped_column(primary_key=True, default=1)
+    active_project_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
