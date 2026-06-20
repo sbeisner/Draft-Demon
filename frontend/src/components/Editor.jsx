@@ -1,107 +1,157 @@
 import React, { useEffect, useRef, useState } from "react";
 import Inkubus from "./Inkubus.jsx";
 
-const countWords = (t) => {
-  t = (t || "").trim();
+const fmt = (n) => (n ?? 0).toLocaleString();
+const GUARD_WORDS = 25; // one-shot deletions of this many words trigger the stash prompt
+
+// Plain text + word count from HTML, using the DOM (accurate, no regex guessing).
+function htmlToText(html) {
+  const d = document.createElement("div");
+  d.innerHTML = html || "";
+  return (d.textContent || "").replace(/ /g, " ");
+}
+const countWords = (html) => {
+  const t = htmlToText(html).trim();
   return t ? t.split(/\s+/).length : 0;
 };
-const fmt = (n) => (n ?? 0).toLocaleString();
-
-// Words removed in one edit beyond this trigger the "stash or delete?" guard.
-const GUARD_WORDS = 25;
-
-// Best-effort diff for a single contiguous edit: strip the common prefix and
-// suffix; what's left of the old string is the removed chunk.
-function diffEdit(oldV, newV) {
+// Removed chunk between two plain-text strings (common-prefix/suffix diff).
+function removedText(oldT, newT) {
   let p = 0;
-  const min = Math.min(oldV.length, newV.length);
-  while (p < min && oldV[p] === newV[p]) p++;
+  const min = Math.min(oldT.length, newT.length);
+  while (p < min && oldT[p] === newT[p]) p++;
   let s = 0;
-  while (s < min - p && oldV[oldV.length - 1 - s] === newV[newV.length - 1 - s]) s++;
-  return { removed: oldV.slice(p, oldV.length - s), added: newV.slice(p, newV.length - s) };
+  while (s < min - p && oldT[oldT.length - 1 - s] === newT[newT.length - 1 - s]) s++;
+  return oldT.slice(p, oldT.length - s).trim();
 }
 
-export default function Editor({ sheet, projState, sessionWords, onSave, onStash }) {
-  const [value, setValue] = useState(sheet.text);
-  const [title, setTitle] = useState(sheet.title);
-  const [confirm, setConfirm] = useState(null); // { removed, pending }
-  const taRef = useRef(null);
-  const saveTimer = useRef(null);
+const TOOLS = [
+  { cmd: "bold", label: "B", title: "Bold (⌘B)", style: { fontWeight: 800 } },
+  { cmd: "italic", label: "I", title: "Italic (⌘I)", style: { fontStyle: "italic" } },
+  { cmd: "underline", label: "U", title: "Underline (⌘U)", style: { textDecoration: "underline" } },
+];
 
+export default function Editor({ sheet, projState, sessionWords, onSave, onStash, onToggleInclude }) {
+  const [title, setTitle] = useState(sheet.title);
+  const [words, setWords] = useState(sheet.words || 0);
+  const [confirm, setConfirm] = useState(null); // { removed, pendingHtml }
+  const ref = useRef(null);
+  const saveTimer = useRef(null);
+  const lastHtml = useRef(sheet.text || "");
+  const lastWords = useRef(sheet.words || 0);
+
+  // Initialize the editable surface once (component is remounted per sheet via key).
   useEffect(() => {
-    setValue(sheet.text);
-    setTitle(sheet.title);
+    if (ref.current) ref.current.innerHTML = sheet.text || "";
+    lastHtml.current = sheet.text || "";
+    lastWords.current = sheet.words || 0;
+    setWords(sheet.words || 0);
   }, [sheet.id]);
 
-  const scheduleSave = (text, t = title) => {
+  const scheduleSave = (html, t = title) => {
     clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => onSave(text, t), 450);
+    saveTimer.current = setTimeout(() => onSave(html, t), 500);
   };
 
-  const handleChange = (e) => {
-    const newV = e.target.value;
-    const { removed, added } = diffEdit(value, newV);
-    // Big, purely-deletive edit -> intercept and offer to stash.
-    if (countWords(removed) >= GUARD_WORDS && added.trim() === "") {
-      setConfirm({ removed, pending: newV }); // value stays old -> textarea visually reverts
+  const exec = (cmd, value = null) => {
+    ref.current?.focus();
+    document.execCommand(cmd, false, value);
+    handleInput();
+  };
+
+  const handleInput = () => {
+    const html = ref.current.innerHTML;
+    const w = countWords(html);
+    const drop = lastWords.current - w;
+    if (drop >= GUARD_WORDS) {
+      // Big one-shot deletion — intercept. Revert the surface and ask.
+      const removed = removedText(htmlToText(lastHtml.current), htmlToText(html));
+      ref.current.innerHTML = lastHtml.current; // visually undo
+      setConfirm({ removed, pendingHtml: html });
       return;
     }
-    setValue(newV);
-    scheduleSave(newV);
+    lastHtml.current = html;
+    lastWords.current = w;
+    setWords(w);
+    scheduleSave(html);
   };
 
   const handleTitle = (e) => {
     setTitle(e.target.value);
-    scheduleSave(value, e.target.value);
+    scheduleSave(lastHtml.current, e.target.value);
+  };
+
+  const handleKeyDown = (e) => {
+    // Paragraphs auto-indent visually (CSS), so Tab doesn't insert a character —
+    // just keep it from moving focus out of the editor.
+    if (e.key === "Tab") e.preventDefault();
   };
 
   const stashSelection = () => {
-    const ta = taRef.current;
-    if (!ta || ta.selectionStart === ta.selectionEnd) {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.toString().trim()) {
       alert("Select the text you want to set aside first.");
       return;
     }
-    const removed = value.slice(ta.selectionStart, ta.selectionEnd);
-    const pending = value.slice(0, ta.selectionStart) + value.slice(ta.selectionEnd);
-    setValue(pending);
-    onStash(pending, removed);
+    const removed = sel.toString();
+    document.execCommand("delete");
+    const html = ref.current.innerHTML;
+    lastHtml.current = html;
+    lastWords.current = countWords(html);
+    setWords(lastWords.current);
+    onStash(html, removed);
   };
 
-  const confirmStash = () => {
-    setValue(confirm.pending);
-    onStash(confirm.pending, confirm.removed);
-    setConfirm(null);
+  const commit = (html) => {
+    ref.current.innerHTML = html;
+    lastHtml.current = html;
+    lastWords.current = countWords(html);
+    setWords(lastWords.current);
   };
-  const confirmDelete = () => {
-    setValue(confirm.pending);
-    onSave(confirm.pending, title); // immediate save -> penalty applies if it digs into past work
-    setConfirm(null);
-  };
+  const confirmStash = () => { commit(confirm.pendingHtml); onStash(confirm.pendingHtml, confirm.removed); setConfirm(null); };
+  const confirmDelete = () => { commit(confirm.pendingHtml); onSave(confirm.pendingHtml, title); setConfirm(null); };
+
+  const included = sheet.include !== false;
 
   return (
     <div className="editor-wrap">
       <div className="editor-top">
         <input className="title" value={title} onChange={handleTitle} />
+        <button
+          className={`incl ${included ? "on" : "off"}`}
+          onClick={() => onToggleInclude(!included)}
+          title={included ? "Counts toward your goal and the compiled manuscript" : "Planning/outline only — excluded from goal & manuscript"}
+        >
+          {included ? "✓ In manuscript" : "✕ Excluded"}
+        </button>
         <div className="spacer" />
-        {projState?.in_deficit && (
-          <span className="deficit">⚠ {fmt(projState.cut_debt)} below locked total</span>
-        )}
+        {projState?.in_deficit && <span className="deficit">⚠ {fmt(projState.cut_debt)} below locked total</span>}
         <span>Session: <span className="live">{fmt(sessionWords)}</span></span>
-        <span>{fmt(countWords(value))} words</span>
-        <div className="ed-actions">
-          <button className="mini" onClick={stashSelection} title="Move the selected text to Cuts">
-            ✂ Stash selection
-          </button>
-        </div>
+        <span>{fmt(words)} words</span>
       </div>
 
-      <textarea
-        ref={taRef}
-        className="editor"
-        value={value}
-        onChange={handleChange}
-        placeholder="Start writing…"
+      <div className="rt-toolbar">
+        {TOOLS.map((t) => (
+          <button key={t.cmd} className="rt-btn" title={t.title} style={t.style}
+            onMouseDown={(e) => { e.preventDefault(); exec(t.cmd); }}>{t.label}</button>
+        ))}
+        <span className="rt-sep" />
+        <button className="rt-btn" title="Heading" onMouseDown={(e) => { e.preventDefault(); exec("formatBlock", "H2"); }}>H</button>
+        <button className="rt-btn" title="Quote" onMouseDown={(e) => { e.preventDefault(); exec("formatBlock", "BLOCKQUOTE"); }}>❝</button>
+        <button className="rt-btn" title="Scene break" onMouseDown={(e) => { e.preventDefault(); exec("insertHorizontalRule"); }}>#</button>
+        <button className="rt-btn" title="Clear formatting" onMouseDown={(e) => { e.preventDefault(); exec("removeFormat"); exec("formatBlock", "P"); }}>⌫</button>
+        <span className="rt-sep" />
+        <button className="rt-btn wide" title="Move the selected text to Cuts" onMouseDown={(e) => { e.preventDefault(); stashSelection(); }}>✂ Stash</button>
+      </div>
+
+      <div
+        ref={ref}
+        className="editor rt"
+        contentEditable
+        suppressContentEditableWarning
         spellCheck
+        data-placeholder="Start writing…"
+        onInput={handleInput}
+        onKeyDown={handleKeyDown}
       />
 
       {confirm && (
@@ -119,9 +169,7 @@ export default function Editor({ sheet, projState, sessionWords, onSave, onStash
               <button className="btn" onClick={confirmStash}>✂ Stash to Cuts</button>
               <button className="btn danger" onClick={confirmDelete}>Delete anyway</button>
             </div>
-            <button className="btn ghost" style={{ marginTop: 10 }} onClick={() => setConfirm(null)}>
-              Keep writing
-            </button>
+            <button className="btn ghost" style={{ marginTop: 10 }} onClick={() => setConfirm(null)}>Keep writing</button>
           </div>
         </div>
       )}

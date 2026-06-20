@@ -2,6 +2,8 @@
 
 Run:  uvicorn app:app --reload --port 8741
 """
+import re
+import html as html_lib
 from datetime import date, datetime
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,8 +23,19 @@ app.add_middleware(
 
 
 # ---- helpers -------------------------------------------------------------
+_TAG_RE = re.compile(r"<[^>]+>")
+_BLOCK_RE = re.compile(r"</(p|div|h1|h2|h3|blockquote|li)>|<br\s*/?>", re.I)
+
+
+def strip_html(s: str) -> str:
+    """Plain text from stored HTML (also fine for legacy plain text)."""
+    s = _BLOCK_RE.sub("\n", s or "")   # block ends become line breaks (word separators)
+    s = _TAG_RE.sub("", s)             # inline tags removed so "dawn</i>." stays one token
+    return html_lib.unescape(s)
+
+
 def count_words(text: str) -> int:
-    text = (text or "").strip()
+    text = strip_html(text).strip()
     return len(text.split()) if text else 0
 
 

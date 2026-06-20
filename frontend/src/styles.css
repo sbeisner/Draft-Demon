@@ -25,8 +25,28 @@ button{font-family:inherit}
 .tb-btn{background:var(--bg3);border:1px solid var(--line);color:var(--txt2);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px}
 .tb-btn:hover{color:var(--txt);border-color:var(--accent)}
 .tb-btn.on{color:var(--accent);border-color:var(--accent)}
+.tb-btn.icon{padding:4px 8px;font-size:13px}
+.tb-btn.icon.off{color:var(--txt3);border-style:dashed}
 
-.app{flex:1;display:flex;min-height:0}
+.app{flex:1;display:flex;min-height:0;overflow:hidden}
+
+/* collapsible sidebars — slide away */
+.side-left{display:flex;min-height:0;transition:margin-left .25s ease, opacity .2s ease}
+.side-left.collapsed{margin-left:-442px;opacity:0;pointer-events:none}
+.side-right{display:flex;min-height:0;transition:margin-right .25s ease, opacity .2s ease}
+.side-right.collapsed{margin-right:-302px;opacity:0;pointer-events:none}
+.center-area{flex:1;display:flex;min-width:0;position:relative}
+
+/* edge toggle handles (flip direction with state) */
+.panel-toggle{position:absolute;top:50%;transform:translateY(-50%);z-index:6;width:15px;height:54px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;font-weight:700;
+  color:var(--txt2);background:var(--bg2);border:1px solid var(--line)}
+.panel-toggle:hover{color:var(--accent);border-color:var(--accent)}
+.panel-toggle.left{left:0;border-left:none;border-radius:0 8px 8px 0}
+.panel-toggle.right{right:0;border-right:none;border-radius:8px 0 0 8px}
+
+/* focus mode (both panels collapsed) centers the editor as a comfortable page */
+.app.focus .editor-wrap{max-width:920px;margin:0 auto;width:100%;border-left:1px solid var(--line);border-right:1px solid var(--line)}
 .col{display:flex;flex-direction:column;min-height:0}
 
 /* library */
@@ -67,9 +87,27 @@ button{font-family:inherit}
 .ed-actions{display:flex;gap:8px}
 .mini{background:var(--bg3);border:1px solid var(--line);color:var(--txt2);padding:3px 9px;border-radius:6px;cursor:pointer;font-size:12px}
 .mini:hover{border-color:var(--accent);color:var(--txt)}
-textarea.editor{flex:1;width:100%;resize:none;border:none;background:var(--paper);color:#dfe1e4;
+
+/* rich-text toolbar */
+.rt-toolbar{display:flex;align-items:center;gap:4px;padding:6px 22px;border-bottom:1px solid var(--line);background:var(--bg2)}
+.rt-btn{min-width:28px;height:28px;padding:0 8px;background:var(--bg3);border:1px solid var(--line);color:var(--txt2);
+  border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.rt-btn:hover{border-color:var(--accent);color:var(--txt)}
+.rt-btn.wide{font-size:12px;font-weight:600}
+.rt-sep{width:1px;height:18px;background:var(--line);margin:0 4px}
+
+/* editor surface (contentEditable) */
+.editor{flex:1;width:100%;overflow-y:auto;border:none;background:var(--paper);color:#e7ddd2;
   font-family:var(--font-write);font-size:19px;line-height:1.7;padding:40px max(60px,8%);outline:none;caret-color:var(--accent)}
-textarea.editor::placeholder{color:var(--txt3)}
+/* paragraphs auto-indent the first line (visual only — compile is unaffected) */
+.editor.rt{text-indent:2em}
+.editor.rt:empty{text-indent:0}
+.editor.rt:empty:before{content:attr(data-placeholder);color:var(--txt3)}
+.editor.rt h2{font-family:var(--font-ui);font-size:22px;color:#fff;margin:.4em 0;text-align:center;text-indent:0}
+.editor.rt blockquote{border-left:3px solid var(--line);margin:.5em 0;padding-left:14px;color:var(--txt2);font-style:italic;text-indent:0}
+.editor.rt hr{border:none;text-align:center;margin:1.1em 0;text-indent:0}
+.editor.rt hr:after{content:"#";color:var(--txt3);font-family:var(--font-ui)}
+.editor.rt p{margin:0 0 .2em}
 
 /* goals panel */
 .goals{width:300px;background:var(--bg2);border-left:1px solid var(--line);flex-shrink:0;overflow-y:auto}

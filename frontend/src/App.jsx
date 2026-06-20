@@ -29,7 +29,18 @@ export default function App() {
   const [toasts, setToasts] = useState([]);
   const [rev, setRev] = useState(0); // bump to force editor remount on programmatic edits
   const [error, setError] = useState(null);
+  const [leftOpen, setLeftOpen] = useState(true);   // library + chapters
+  const [rightOpen, setRightOpen] = useState(true); // goals / Inkubus panel
   const sessionBase = useRef({});
+  const focusMode = !leftOpen && !rightOpen;
+  const toggleFocus = () => { const open = focusMode; setLeftOpen(open); setRightOpen(open); };
+
+  // Esc leaves focus mode
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape" && focusMode) { setLeftOpen(true); setRightOpen(true); } };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focusMode]);
 
   const active = projects.find((p) => p.id === activeId) || null;
   const activeSheet = active ? active.sheets.find((s) => s.id === activeSheetId) || active.sheets[0] : null;
@@ -214,9 +225,11 @@ export default function App() {
           ✂ Cuts{active ? ` (${active.cuts.length})` : ""}
         </button>
         <button className="tb-btn" onClick={logToday} title="Demo: log today's goal">⚡ Log today</button>
+        <button className={`tb-btn ${focusMode ? "on" : ""}`} onClick={toggleFocus} title="Focus mode — hide all panels (Esc to exit)">◳ Focus</button>
       </div>
 
-      <div className="app">
+      <div className={`app ${focusMode ? "focus" : ""}`}>
+        <div className={`side-left ${leftOpen ? "" : "collapsed"}`}>
         {/* Library */}
         <div className="col library">
           <div className="col-head">
@@ -250,6 +263,15 @@ export default function App() {
             </div>
           ))}
         </div>
+        </div>
+
+        <div className="center-area">
+        <button className="panel-toggle left" onClick={() => setLeftOpen((o) => !o)}
+          title={leftOpen ? "Collapse library & chapters" : "Show library & chapters"}>{leftOpen ? "‹" : "›"}</button>
+        {active && (
+          <button className="panel-toggle right" onClick={() => setRightOpen((o) => !o)}
+            title={rightOpen ? "Collapse goals panel" : "Show goals panel"}>{rightOpen ? "›" : "‹"}</button>
+        )}
 
         {/* Editor or Cuts */}
         {showCuts ? (
@@ -295,13 +317,17 @@ export default function App() {
           </div>
         )}
 
+        </div>
+
         {/* Goals */}
         {active && (
-          <GoalsPanel
-            project={active}
-            onEditGoal={() => setModal({ isNew: false, initial: active })}
-            onToggleMilestone={toggleMilestone}
-          />
+          <div className={`side-right ${rightOpen ? "" : "collapsed"}`}>
+            <GoalsPanel
+              project={active}
+              onEditGoal={() => setModal({ isNew: false, initial: active })}
+              onToggleMilestone={toggleMilestone}
+            />
+          </div>
         )}
       </div>
 
