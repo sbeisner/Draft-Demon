@@ -83,6 +83,7 @@ def serialize(p: models.Project) -> dict:
                   "words": c.words, "created": c.created} for c in p.cuts],
         "tasks": [{"id": t.id, "text": t.text, "done": t.done} for t in p.tasks],
         "placeholders": find_placeholders(p),
+        "dictionary": sorted(p.dictionary or {}, key=str.lower),
         "phases": ge.PHASES,
         "badge_defs": [{"id": b["id"], "icon": b["icon"], "name": b["name"]} for b in ge.BADGES],
         "state": st,
@@ -429,6 +430,34 @@ def delete_task(pid: int, tid: int, db: Session = Depends(get_db)):
     return serialize(p)
 
 
+class WordIn(BaseModel):
+    word: str
+
+
+@app.post("/api/projects/{pid}/dictionary")
+def add_word(pid: int, body: WordIn, db: Session = Depends(get_db)):
+    p = get_project(db, pid)
+    w = body.word.strip()
+    if w:
+        d = dict(p.dictionary or {})
+        d[w] = True
+        p.dictionary = d
+        db.commit()
+        db.refresh(p)
+    return serialize(p)
+
+
+@app.delete("/api/projects/{pid}/dictionary/{word}")
+def remove_word(pid: int, word: str, db: Session = Depends(get_db)):
+    p = get_project(db, pid)
+    d = dict(p.dictionary or {})
+    d.pop(word, None)
+    p.dictionary = d
+    db.commit()
+    db.refresh(p)
+    return serialize(p)
+
+
 @app.put("/api/projects/{pid}/milestone")
 def set_milestone(pid: int, body: MilestoneIn, db: Session = Depends(get_db)):
     p = get_project(db, pid)
@@ -438,6 +467,78 @@ def set_milestone(pid: int, body: MilestoneIn, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(p)
     return serialize(p)
+
+
+# ---- app state (shared by main window + widget) -------------------------
+SCRATCH_TITLE = "⚡ Scratchpad"
+
+
+def get_state(db: Session) -> models.AppState:
+    s = db.get(models.AppState, 1)
+    if not s:
+        s = models.AppState(id=1, active_project_id=None)
+        db.add(s)
+        db.commit()
+    return s
+
+
+class StateIn(BaseModel):
+    active_project_id: int | None = None
+
+
+@app.get("/api/state")
+def read_state(db: Session = Depends(get_db)):
+    return {"active_project_id": get_state(db).active_project_id}
+
+
+@app.put("/api/state")
+def write_state(body: StateIn, db: Session = Depends(get_db)):
+    s = get_state(db)
+    s.active_project_id = body.active_project_id
+    db.commit()
+    return {"active_project_id": s.active_project_id}
+
+
+def mood_for(st: dict) -> str:
+    return "angry" if st["in_deficit"] or st["pace"] < 0 else "happy"
+
+
+@app.get("/api/widget")
+def widget(db: Session = Depends(get_db)):
+    """Everything the desktop widget needs in one call: the active project's
+    goal/streak/mood plus a synced Scratchpad sheet that counts toward today."""
+    s = get_state(db)
+    p = None
+    if s.active_project_id:
+        p = db.get(models.Project, s.active_project_id)
+    if not p:
+        p = db.query(models.Project).first()
+    if not p:
+        return {"empty": True}
+
+    # ensure a scratchpad sheet exists (real sheet -> counts toward the manuscript)
+    scratch = next((sh for sh in p.sheets if sh.title == SCRATCH_TITLE), None)
+    if not scratch:
+        scratch = models.Sheet(project_id=p.id, title=SCRATCH_TITLE, text="", words=0, position=len(p.sheets))
+        p.sheets.append(scratch)
+        db.commit()
+        db.refresh(p)
+
+    st = ge.compute_state(p, total_words(p))
+    return {
+        "empty": False,
+        "project_id": p.id,
+        "title": p.title,
+        "mood": mood_for(st),
+        "scratch": {"id": scratch.id, "text": scratch.text, "words": scratch.words},
+        "state": {
+            "daily_goal": st["daily_goal"], "wrote_today": st["wrote_today"],
+            "day_pct": st["day_pct"], "overall_pct": st["overall_pct"],
+            "streak": p.streak, "remaining": st["remaining"], "days_left": st["days_left"],
+            "in_deficit": st["in_deficit"], "pace": st["pace"], "task": st["task"],
+            "phase_name": st["phase_name"],
+        },
+    }
 
 
 @app.get("/api/health")

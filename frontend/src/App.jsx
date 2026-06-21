@@ -46,14 +46,46 @@ export default function App() {
   const activeSheet = active ? active.sheets.find((s) => s.id === activeSheetId) || active.sheets[0] : null;
 
   // ---- load ----
-  useEffect(() => {
-    api.list()
-      .then((list) => {
+  // Retry the first connection so a backend that is still warming up (common on
+  // a one-command `npm run dev` boot) doesn't permanently show the error screen.
+  const load = async ({ retries = 20, delay = 500 } = {}) => {
+    setError(null);
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const [list, st] = await Promise.all([api.list(), api.getState().catch(() => ({}))]);
         setProjects(list);
-        if (list.length) selectProject(list[0]);
-        else setModal({ isNew: true, initial: NEW_DEFAULT });
-      })
-      .catch((e) => setError(String(e)));
+        if (list.length) {
+          const initial = list.find((p) => p.id === st?.active_project_id) || list[0];
+          selectProject(initial);
+        } else {
+          setModal({ isNew: true, initial: NEW_DEFAULT });
+        }
+        return;
+      } catch (e) {
+        if (attempt >= retries) { setError(String(e)); return; }
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  // keep the active project id reachable from the once-registered dict listener
+  const activeIdRef = useRef(null);
+  useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
+
+  // sync the active project's custom words into Electron's spellchecker
+  useEffect(() => {
+    if (active) window.draftDemon?.syncDictionary?.(active.dictionary || []);
+  }, [activeId, active?.dictionary]);
+
+  // persist words added via the native right-click "Add to dictionary"
+  useEffect(() => {
+    window.draftDemon?.onDictAdd?.(async (word) => {
+      const id = activeIdRef.current;
+      if (!id) return;
+      try { replaceProject(await api.addWord(id, word)); toast(`“${word}” added to dictionary`, "good"); } catch {}
+    });
   }, []);
 
   useEffect(() => {
@@ -76,6 +108,7 @@ export default function App() {
     setActiveId(p.id);
     setActiveSheetId(p.sheets[0]?.id ?? null);
     setShowCuts(false);
+    api.setActive(p.id).catch(() => {}); // keep the native widget in sync
   };
 
   const handleEvent = (ev) => {
@@ -160,6 +193,9 @@ export default function App() {
     setShowCuts(false);
     setActiveSheetId(sid);
   };
+
+  const addWord = async (word) => { if (active && word.trim()) replaceProject(await api.addWord(active.id, word.trim())); };
+  const removeWord = async (word) => { if (active) replaceProject(await api.removeWord(active.id, word)); };
 
   const addSheet = async () => {
     const r = await api.addSheet(active.id, { title: `Chapter ${active.sheets.length + 1}` });
@@ -374,6 +410,9 @@ export default function App() {
           initial={modal.initial}
           isNew={modal.isNew}
           currentWords={active?.state.total_words || 0}
+          dictionary={modal.isNew ? [] : (active?.dictionary || [])}
+          onAddWord={addWord}
+          onRemoveWord={removeWord}
           onSave={saveGoal}
           onClose={() => setModal(null)}
         />

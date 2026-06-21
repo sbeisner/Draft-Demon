@@ -1,0 +1,52 @@
+# XcodeGen project definition. Generate the Xcode project with:
+#   brew install xcodegen   (once)
+#   cd macos-widget && xcodegen generate && open DraftDemon.xcodeproj
+#
+# Then set your Team in Signing & Capabilities for BOTH targets and Run.
+
+name: DraftDemon
+options:
+  bundleIdPrefix: com.draftdemon
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    DEVELOPMENT_TEAM: "LZ4WN944FU"   # Apple Development: writerstevene@gmail.com
+
+targets:
+  DraftDemonCompanion:
+    type: application
+    platform: macOS
+    sources:
+      - App
+      - Shared
+      - Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.draftdemon.companion
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: "Draft Demon"
+        INFOPLIST_KEY_LSUIElement: NO
+        CODE_SIGN_ENTITLEMENTS: App/App.entitlements
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ""
+    dependencies:
+      - target: DraftDemonWidgetExtension
+        embed: true
+
+  DraftDemonWidgetExtension:
+    type: app-extension
+    platform: macOS
+    sources:
+      - Widget
+      - Shared
+      - Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.draftdemon.companion.widget
+        INFOPLIST_FILE: Widget/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Widget/Widget.entitlements

@@ -29,7 +29,12 @@ export const api = {
   addTask: (id, text) => req("POST", `/api/projects/${id}/tasks`, { text }),
   updateTask: (id, tid, b) => req("PUT", `/api/projects/${id}/tasks/${tid}`, b),
   deleteTask: (id, tid) => req("DELETE", `/api/projects/${id}/tasks/${tid}`),
+  addWord: (id, word) => req("POST", `/api/projects/${id}/dictionary`, { word }),
+  removeWord: (id, word) => req("DELETE", `/api/projects/${id}/dictionary/${encodeURIComponent(word)}`),
   health: () => req("GET", "/api/health"),
+  // app state
+  getState: () => req("GET", "/api/state"),
+  setActive: (id) => req("PUT", "/api/state", { active_project_id: id }),
 };
 
 export { BASE };
