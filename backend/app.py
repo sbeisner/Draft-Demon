@@ -2,17 +2,20 @@
 
 Run:  uvicorn app:app --reload --port 8741
 """
+import io
 import re
 import html as html_lib
 from datetime import date, datetime
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from database import Base, engine, get_db, ensure_schema
 import models
 import engine as ge
+import compile as mscompile
 
 Base.metadata.create_all(bind=engine)
 ensure_schema()  # additively backfill columns added to models since the DB was created
@@ -45,6 +48,10 @@ def total_words(p: models.Project) -> int:
     return sum(s.words for s in p.sheets if s.include_in_manuscript)
 
 
+def included_sheets(p: models.Project) -> list:
+    return [s for s in sorted(p.sheets, key=lambda x: x.position) if s.include_in_manuscript]
+
+
 _PLACEHOLDER_RE = re.compile(r"\[([^\[\]\n]{1,120})\]")
 TASK_XP = 20  # small reward for checking a box
 
@@ -65,7 +72,7 @@ def serialize(p: models.Project) -> dict:
     t = total_words(p)
     st = ge.compute_state(p, t)
     return {
-        "id": p.id, "title": p.title, "subtitle": p.subtitle,
+        "id": p.id, "title": p.title, "subtitle": p.subtitle, "author": p.author,
         "target": p.target, "deadline": p.deadline.isoformat(),
         "start_date": p.start_date.isoformat(), "days_per_week": p.days_per_week,
         "xp": p.xp, "lifetime_words": p.lifetime_words, "streak": p.streak,
@@ -93,6 +100,7 @@ def get_project(db: Session, pid: int) -> models.Project:
 class ProjectIn(BaseModel):
     title: str = "Untitled Project"
     subtitle: str = "Novel"
+    author: str = ""
     target: int = 80000
     deadline: str
     days_per_week: int = 5
@@ -126,7 +134,7 @@ def list_projects(db: Session = Depends(get_db)):
 @app.post("/api/projects")
 def create_project(body: ProjectIn, db: Session = Depends(get_db)):
     p = models.Project(
-        title=body.title, subtitle=body.subtitle, target=body.target,
+        title=body.title, subtitle=body.subtitle, author=body.author, target=body.target,
         deadline=date.fromisoformat(body.deadline), start_date=date.today(),
         days_per_week=body.days_per_week, badges={}, milestones_done={}, daily_log={},
     )
@@ -140,7 +148,7 @@ def create_project(body: ProjectIn, db: Session = Depends(get_db)):
 @app.put("/api/projects/{pid}/goal")
 def update_goal(pid: int, body: ProjectIn, db: Session = Depends(get_db)):
     p = get_project(db, pid)
-    p.title, p.subtitle = body.title, body.subtitle
+    p.title, p.subtitle, p.author = body.title, body.subtitle, body.author
     p.target = body.target
     p.deadline = date.fromisoformat(body.deadline)
     p.days_per_week = body.days_per_week
@@ -353,6 +361,19 @@ def set_include(pid: int, sid: int, body: IncludeIn, db: Session = Depends(get_d
     db.commit()
     db.refresh(p)
     return serialize(p)
+
+
+@app.get("/api/projects/{pid}/compile.docx")
+def compile_manuscript(pid: int, db: Session = Depends(get_db)):
+    """Assemble all included chapters into a standard-manuscript-format .docx."""
+    p = get_project(db, pid)
+    data = mscompile.build_manuscript(p.title, p.author, included_sheets(p))
+    safe = re.sub(r"[^\w\- ]", "", p.title or "manuscript").strip() or "manuscript"
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{safe} - manuscript.docx"'},
+    )
 
 
 class TaskIn(BaseModel):

@@ -136,6 +136,12 @@ export default function App() {
     toast(include ? "✓ Counts toward your manuscript" : "✕ Excluded — planning only", "good");
   };
 
+  const compile = () => {
+    if (!active) return;
+    window.open(api.compileUrl(active.id), "_blank");
+    toast("📄 Compiling manuscript…", "good");
+  };
+
   const addTask = async (text) => {
     if (!active || !text.trim()) return;
     replaceProject(await api.addTask(active.id, text.trim()));
@@ -247,6 +253,7 @@ export default function App() {
         </span>
         <div className="spacer" />
         <button className="tb-btn" onClick={() => setModal({ isNew: true, initial: NEW_DEFAULT })}>＋ New Project</button>
+        {active && <button className="tb-btn" onClick={compile} title="Compile included chapters into a manuscript .docx">📄 Compile</button>}
         <button className={`tb-btn ${showCuts ? "on" : ""}`} onClick={() => setShowCuts((s) => !s)}>
           ✂ Cuts{active ? ` (${active.cuts.length})` : ""}
         </button>

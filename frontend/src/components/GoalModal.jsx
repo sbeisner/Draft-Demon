@@ -12,6 +12,7 @@ function writingDays(deadline, dpw) {
 
 export default function GoalModal({ initial, isNew, currentWords = 0, onSave, onClose }) {
   const [title, setTitle] = useState(initial.title);
+  const [author, setAuthor] = useState(initial.author || "");
   const [target, setTarget] = useState(initial.target);
   const [deadline, setDeadline] = useState(initial.deadline);
   const [dpw, setDpw] = useState(initial.days_per_week);
@@ -31,9 +32,15 @@ export default function GoalModal({ initial, isNew, currentWords = 0, onSave, on
           Set the target and deadline. Draft Demon divides the work into a daily goal and re-balances
           it as you go.
         </p>
-        <div className="field">
-          <label>Project title</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} />
+        <div className="two">
+          <div className="field">
+            <label>Project title</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+          <div className="field">
+            <label>Author name</label>
+            <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="for the manuscript title page" />
+          </div>
         </div>
         <div className="two">
           <div className="field">
@@ -65,6 +72,7 @@ export default function GoalModal({ initial, isNew, currentWords = 0, onSave, on
               onSave({
                 title: title || "Untitled",
                 subtitle: initial.subtitle || "Novel",
+                author: author.trim(),
                 target: Number(target) || 50000,
                 deadline,
                 days_per_week: Number(dpw),
