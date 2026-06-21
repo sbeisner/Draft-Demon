@@ -42,15 +42,19 @@ Requires **Python 3.10+** and **Node 18+**.
 
 ```bash
 cd "Draft Demon"
-bash setup.sh        # makes a venv, installs deps, seeds a demo project
-
 npm run dev          # launches the full desktop app (Electron)
 # or
 npm run dev:web      # backend + browser version at http://localhost:5173
 ```
 
-`npm run dev` starts the FastAPI backend (port 8741), the Vite dev server
-(5173), and Electron once both are up.
+That's it — one command. A preflight (`scripts/predev.sh`) runs automatically
+before `dev`/`dev:web`: it creates the backend virtualenv, installs Python and
+Node deps (only when they change), seeds the demo project on first run, and
+frees a stale backend port if one is held. Re-runs are an instant no-op.
+
+`npm run dev` then starts the FastAPI backend (port 8741), the Vite dev server
+(5173), and Electron once both are up. The backend is owned by the dev script,
+so Electron only launches its own backend in a packaged build (`npm start`).
 
 ## Inkubus artwork
 
@@ -87,10 +91,63 @@ Only **surviving** words count, and destroying committed work has consequences
 
 This lives in `apply_word_change` and the `/stash` endpoint.
 
+## Writing suite
+
+- **Rich text.** The editor is a formatted surface — bold, italic, underline,
+  headings, blockquotes, and a centered `#` scene break (toolbar above the page).
+  Content is stored as HTML; word counts strip the markup so formatting never
+  inflates your numbers.
+- **Include / exclude chapters.** Each chapter has an **In manuscript / Excluded**
+  toggle. Excluded sheets are for planning, outlines, or notes — they don't count
+  toward your word goal and aren't compiled. Toggling is goal-neutral: it never
+  awards XP or trips the deletion penalty (the locked baseline shifts with it).
+- **Compile to manuscript.** The **📄 Compile** button assembles every *included*
+  chapter, in order, into a standard manuscript-format `.docx` (Shunn-style: 1"
+  margins, 12pt Times New Roman, double-spaced, first-line indents, a title page
+  with contact info + approximate word count, a `Surname / TITLE / page` running
+  header, chapters on new pages, centered `#` scene breaks). Set your pen name in
+  the project's **Author name** field (goal dialog) for the title page/header.
+
+Backed by `backend/compile.py` (HTML→DOCX via python-docx) and
+`GET /api/projects/{id}/compile.docx`.
+
+### Spell-check & project dictionary
+
+- **Red squiggles** come from the built-in spellchecker on the editor surface.
+- **Right-click a misspelling** for suggestions (click one to replace it) plus
+  **Add to dictionary** and cut/copy/paste. The context menu is built in the
+  Electron main process (`electron/main.js`, the `context-menu` handler).
+- **Per-project dictionary.** Added words persist on the project
+  (`POST/DELETE /api/projects/{id}/dictionary`) and are synced into the
+  spellchecker whenever you switch projects, so character names and invented
+  terms stop getting flagged — scoped to that project. Manage the word list
+  (add/remove chips) in the project's goal/settings dialog.
+- *macOS note:* macOS uses the system spellchecker, so a custom word may be
+  remembered system-wide rather than strictly per-project, and exact suggestion
+  behavior can differ from Windows/Linux. The right-click correct/add flow works
+  regardless. (This part wasn't compile-tested on a Mac — see notes below.)
+
+## Desktop widget
+
+A floating, always-on-top mini panel plus a menu-bar (tray) icon — the
+Duolingo-style nudge. It launches with the app and shows today's goal ring,
+streak, Inkubus's current mood, and the current phase/task.
+
+- **Menu-bar icon** (tray): left-click toggles the widget; right-click for
+  Show/hide widget · Open Draft Demon · Quit.
+- **Live scratch field**: jot words straight into the widget — they save to a
+  `⚡ Scratchpad` sheet in the active project, so they count toward today's goal
+  (updating streak + Inkubus's mood) and sync into your manuscript.
+- **Open Draft Demon**: brings the full editor to the front.
+- Auto-refreshes every minute, stays always-on-top, and remembers where you
+  drag it (`widget-bounds.json` in the app's userData folder).
+
+It's a second Vite entry (`frontend/widget.html` → `src/components/Widget.jsx`)
+and reads `GET /api/widget`. The main window and widget stay in sync via
+`GET/PUT /api/state` (which project is active).
+
 ## Notes / next steps
 
-- **macOS desktop widget**: the natural next piece — a WidgetKit/menu-bar widget
-  showing today's goal, streak, and Inkubus's current mood. It would read the same API.
-- **Packaging**: `npm run build:frontend` produces the static bundle; wrapping it
+- **Packaging**: `npm run build:frontend` produces the static bundles; wrapping
   into a distributable `.app` (electron-builder) is a follow-up.
 - The SQLite file is `backend/draftdemon.db` — delete it to reset all data.

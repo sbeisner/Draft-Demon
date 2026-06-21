@@ -4,8 +4,10 @@ backend/.venv/
 release/
 macos-widget/build/
 *.dmg
-# preview / screenshot PNGs live at the repo root (functional assets are in subdirs)
+# preview / screenshot PNGs and sample exports live at the repo root
+# (functional assets are in subdirs)
 /*.png
+/*.docx
 # Xcode per-user state (macOS widget project)
 xcuserdata/
 *.xcuserstate
