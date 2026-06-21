@@ -9,9 +9,12 @@ import React, { useState } from "react";
  * frontend/public/inkubus-angry.png , those are used automatically; otherwise
  * these built-in SVGs render so the app always has a mascot.
  */
+// Prefix with Vite's base URL ("/" in dev, "./" in the packaged build) so the
+// art resolves both from the dev server and from file:// inside the prod app.
+const BASE = import.meta.env.BASE_URL;
 const SRC = {
-  angry: "/inkubus-angry.png",
-  neutral: "/inkubus-neutral.png",
+  angry: `${BASE}inkubus-angry.png`,
+  neutral: `${BASE}inkubus-neutral.png`,
 };
 
 export default function Inkubus({ mood = "neutral", size = 96, className = "" }) {
