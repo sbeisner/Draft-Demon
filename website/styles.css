@@ -1,0 +1,211 @@
+/* ============================================================
+   LILITH FORGE — WEBFONTS
+   Cinzel + Inter are loaded from Google Fonts (exactly as the
+   source product does). No substitution — these are the real
+   brand faces. The writing surface uses Iowan Old Style with a
+   serif stack fallback (system serif; no webfont needed).
+   ============================================================ */
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Cinzel+Decorative:wght@700;900&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Inter:wght@400;500;600;700&display=swap");
+
+/* The manuscript writing face is a SYSTEM serif (as in the source app).
+   This local()-only @font-face binds the installed copy when present and
+   otherwise falls through to the stack — no binary is shipped, none needed. */
+@font-face {
+  font-family: "Iowan Old Style";
+  src: local("Iowan Old Style"), local("IowanOldStyle"), local("Palatino Linotype"), local("Georgia");
+  font-display: swap;
+}
+:root {
+  /* ============================================================
+     LILITH FORGE — COLOR SYSTEM
+     A demonic ember palette: charcoal substrates lit by forge-gold
+     and molten orange. Two accent families coexist —
+     forge-gold (studio / marketing) and ember-orange (Inkubus app).
+     ============================================================ */
+
+  /* --- Charcoal substrate (studio / marketing surfaces) --- */
+  --char-900: #141416;   /* base background */
+  --char-850: #17120f;   /* warm charcoal (app base) */
+  --char-800: #1b1c1f;   /* raised surface */
+  --char-750: #1f1814;   /* warm raised (app) */
+  --char-700: #212327;   /* card / control */
+  --char-650: #2a1f19;   /* warm card (app) */
+  --char-600: #2f3137;   /* hairline / border */
+  --char-550: #3d2c22;   /* warm border (app) */
+  --char-500: #4a382c;   /* scrollbar / divider warm */
+
+  /* --- Forge gold (PRIMARY brand accent — studio, marketing) --- */
+  --gold-400: #ecbf7e;
+  --gold-500: #e0a458;   /* primary */
+  --gold-600: #c98a3e;   /* hover / pressed */
+  --gold-700: #a06f2f;
+
+  /* --- Ember orange (Inkubus app accent) --- */
+  --ember-300: #ff9a4d;
+  --ember-400: #ff7a18;  /* app primary */
+  --ember-500: #e0560f;  /* app hover */
+  --ember-600: #c0440a;
+  --ember-glow: rgba(255,122,24,0.35);
+
+  /* --- Coral ember (secondary warm, marketing highlights) --- */
+  --coral-400: #e88f76;
+  --coral-500: #e07a5f;
+
+  /* --- Occult / ritual extensions ------------------------------
+     The studio's devilish register: deeper-than-black chamber bases,
+     candle-gold flame, and oxblood for sigils & seals. --- */
+  --chamber-950: #0a0807;  /* the altar room — darker than char-900 */
+  --chamber-900: #110d0d;  /* raised chamber surface */
+  --flame-300:  #fff2cf;   /* flame core / hot highlight */
+  --flame-400:  #ffd27a;   /* candle gold */
+  --oxblood-500: #a51d1d;  /* sigil red */
+  --oxblood-700: #6e0d12;  /* wax seal / deep blood */
+  --oxblood-900: #3a0a0c;  /* dried blood shadow */
+  --sulfur-500: #c9a23a;   /* tarnished brass / brimstone */
+
+  /* --- Text --- */
+  --ink-100: #f2e9e2;    /* warm white (app text) */
+  --ink-150: #ececee;    /* cool white (marketing text) */
+  --ink-300: #b9a89c;    /* warm secondary */
+  --ink-350: #a7abb2;    /* cool secondary */
+  --ink-500: #8a766a;    /* warm tertiary */
+  --ink-550: #71757c;    /* cool tertiary */
+
+  /* --- Semantic status --- */
+  --success: #43c46a;
+  --success-soft: #5fb878;
+  --warning: #ffab40;
+  --danger: #e5331b;
+  --danger-soft: #e5484d;
+
+  /* ============================================================
+     SEMANTIC ALIASES — prefer these in product code
+     ============================================================ */
+  --bg-base: var(--char-900);
+  --bg-raised: var(--char-800);
+  --surface-card: var(--char-700);
+  --surface-control: var(--char-700);
+  --border-hairline: var(--char-600);
+  --border-strong: var(--char-550);
+
+  --text-primary: var(--ink-150);
+  --text-body: var(--ink-350);
+  --text-muted: var(--ink-550);
+  --text-on-accent: #1a1205;
+
+  --accent: var(--gold-500);
+  --accent-hover: var(--gold-600);
+  --accent-app: var(--ember-400);
+  --accent-app-hover: var(--ember-500);
+}
+
+/* ------------------------------------------------------------
+   APP THEME SCOPE — the Inkubus editor runs warmer & darker.
+   Apply .theme-inkubus on a container to remap the substrate.
+   ------------------------------------------------------------ */
+.theme-inkubus {
+  --bg-base: var(--char-850);
+  --bg-raised: var(--char-750);
+  --surface-card: var(--char-650);
+  --surface-control: var(--char-650);
+  --border-hairline: var(--char-550);
+  --border-strong: var(--char-500);
+
+  --text-primary: var(--ink-100);
+  --text-body: var(--ink-300);
+  --text-muted: var(--ink-500);
+
+  --accent: var(--ember-400);
+  --accent-hover: var(--ember-500);
+}
+:root {
+  /* ============================================================
+     LILITH FORGE — TYPE SYSTEM
+     Cinzel (engraved Roman caps) for display/brand — the "forged"
+     voice. Inter for UI. A literary serif for the writing surface.
+     ============================================================ */
+
+  --font-display: "Cinzel", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-ritual: "Cinzel Decorative", "Cinzel", Georgia, serif;
+  --font-grimoire: "EB Garamond", "Iowan Old Style", Georgia, serif;
+  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-write: "Iowan Old Style", "Palatino Linotype", "Georgia", serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Type scale (px) */
+  --fs-display-xl: 80px;
+  --fs-display-lg: 56px;
+  --fs-display-md: 38px;
+  --fs-h1: 30px;
+  --fs-h2: 22px;
+  --fs-h3: 17px;
+  --fs-body-lg: 19px;   /* writing surface */
+  --fs-body: 15px;
+  --fs-sm: 14px;
+  --fs-xs: 12px;
+  --fs-2xs: 11px;
+
+  /* Weights */
+  --fw-regular: 400; /* @kind other */
+  --fw-medium: 500; /* @kind other */
+  --fw-semibold: 600; /* @kind other */
+  --fw-bold: 700; /* @kind other */
+  --fw-black: 900; /* @kind other */
+
+  /* Line heights */
+  --lh-tight: 1.06; /* @kind other */
+  --lh-snug: 1.35; /* @kind other */
+  --lh-normal: 1.6; /* @kind other */
+  --lh-relaxed: 1.7; /* @kind other */
+
+  /* Letter spacing */
+  --ls-display: 1px;     /* @kind spacing */
+  --ls-eyebrow: 2.5px;   /* @kind spacing */
+  --ls-label: 0.8px;     /* @kind spacing */
+}
+:root {
+  /* ============================================================
+     LILITH FORGE — SPACING, RADII, SHADOWS, MOTION
+     ============================================================ */
+
+  /* Spacing scale (4px base) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 22px;
+  --sp-6: 28px;
+  --sp-8: 48px;
+  --sp-10: 72px;
+  --sp-12: 96px;
+
+  /* Corner radii — controls are gently rounded; cards more so */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  /* Borders */
+  --bd-hairline: 1px solid var(--border-hairline);
+  --bd-accent: 1px solid var(--accent);
+
+  /* Shadows — soft black for elevation, warm glow for accents */
+  --shadow-sm: 0 4px 14px rgba(0,0,0,0.30);
+  --shadow-md: 0 20px 60px rgba(0,0,0,0.50);
+  --shadow-card: 0 24px 60px rgba(224,122,95,0.18), 0 0 0 1px var(--border-hairline);
+
+  /* Accent glows — the molten signature */
+  --glow-gold: 0 0 34px rgba(224,164,88,0.22);
+  --glow-ember: 0 0 34px rgba(255,122,24,0.28);
+  --glow-danger: 0 0 22px rgba(229,51,27,0.40);
+
+  /* Layout */
+  --maxw-page: 1080px; /* @kind other */
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* @kind other */
+  --dur-fast: 0.12s; /* @kind other */
+  --dur-base: 0.2s; /* @kind other */
+  --dur-slow: 0.25s; /* @kind other */
+}
