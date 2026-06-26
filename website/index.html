@@ -164,6 +164,15 @@
     opacity:.16;background:linear-gradient(0deg,var(--ember-500),var(--ember-400) 45%,var(--flame-300));
     -webkit-mask:url(assets/inkubus-mark.png) center/contain no-repeat;
             mask:url(assets/inkubus-mark.png) center/contain no-repeat}
+  /* forging = named but not yet shipped (Cronus). Cold steel accent. */
+  .demon-card.forging{border-color:var(--hour-500);box-shadow:0 0 0 1px rgba(56,182,214,.16),0 24px 60px rgba(56,182,214,.10)}
+  .demon-card.forging:hover{transform:translateY(-4px);box-shadow:0 0 0 1px rgba(56,182,214,.32),0 0 50px rgba(56,182,214,.22)}
+  .demon-card.forging .status{color:var(--hour-300)}
+  .demon-card.forging .status .dot{background:var(--hour-400);box-shadow:0 0 10px var(--hour-400);animation:pulse 2.4s ease-in-out infinite}
+  .demon-card .mascot-bg.cronus-bg{position:absolute;right:-30px;bottom:-30px;width:172px;height:172px;
+    opacity:.16;background:linear-gradient(0deg,var(--hour-500),var(--hour-400) 48%,var(--hour-300));
+    -webkit-mask:url(assets/cronus-mark.png) center/contain no-repeat;
+            mask:url(assets/cronus-mark.png) center/contain no-repeat}
 
   /* ---- first-born feature ---- */
   .firstborn{display:grid;grid-template-columns:1fr 1.1fr;gap:56px;align-items:center;
@@ -320,14 +329,15 @@
       <p>Bound to your word count. Turns a deadline into a daily quota, keeps the streak, and turns on you when you delete your own hard-won pages.</p>
       <div class="status"><span class="dot"></span>Summoned · macOS</div>
     </a>
-    <div class="demon-card unbound">
-      <svg class="sigil" viewBox="0 0 40 40" style="color:var(--sulfur-500)"><use href="#lf-seal"/></svg>
+    <a class="demon-card forging" href="https://cronus.lilithforge.com/">
+      <span class="mascot-bg cronus-bg" role="img" aria-label=""></span>
+      <svg class="sigil" viewBox="0 0 40 40" style="color:var(--hour-400)"><use href="#lf-seal"/></svg>
       <div class="domain">Time · Scheduling</div>
-      <h3>Unnamed</h3>
+      <h3>Cronus</h3>
       <div class="epithet">Demon of the Hours</div>
-      <p>A keeper of calendars with no patience for the day that slips away unspent. Still taking shape in the circle.</p>
-      <div class="status"><span class="dot"></span>Still forming</div>
-    </div>
+      <p>A keeper of calendars with no patience for the day that slips away unspent. It reads your work, your classes, your chores — and chains each to the hour it belongs in.</p>
+      <div class="status"><span class="dot"></span>In the forge · soon</div>
+    </a>
     <div class="demon-card unbound">
       <svg class="sigil" viewBox="0 0 40 40" style="color:var(--sulfur-500)"><use href="#lf-seal"/></svg>
       <div class="domain">Productivity · Focus</div>
@@ -361,6 +371,7 @@
   <div class="est">Forged in MMXXVI · a studio of bound demons</div>
   <div class="links">
     <a href="https://inkubus.lilithforge.com/">Inkubus</a>
+    <a href="https://cronus.lilithforge.com/">Cronus</a>
     <a href="#covenant">The Covenant</a>
     <a href="mailto:admin@lilithforge.com">admin@lilithforge.com</a>
   </div>

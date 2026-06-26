@@ -4,6 +4,7 @@ Static marketing site for the studio and its first app.
 
 - `index.html` — **Lilith Forge** studio home page → `lilithforge.com` (KAN-94)
 - `inkubus/index.html` — **Inkubus** product landing page → `inkubus.lilithforge.com` (KAN-97)
+- `cronus/index.html` — **Cronus** product landing page → `cronus.lilithforge.com` (pre-launch / waitlist; no download yet)
 - `assets/` — shared brand artwork (mascot + logo)
 - `downloads/` — local-only DMG for preview (git-ignored; see "Hosting the DMG" below)
 
@@ -34,6 +35,7 @@ so each deploys cleanly on its own.
 |---|---|---|
 | `lilith-forge-site` | `website` | `lilithforge.com`, `www.lilithforge.com` |
 | `inkubus-site` | `website/inkubus` | `inkubus.lilithforge.com` |
+| `cronus-site` | `website/cronus` | `cronus.lilithforge.com` |
 
 > Depends on KAN-90 (DNS in Cloudflare) being done and a Cloudflare account existing.
 
@@ -52,6 +54,9 @@ wrangler pages deploy website --project-name=lilith-forge-site
 
 # Inkubus product page  ->  inkubus.lilithforge.com
 wrangler pages deploy website/inkubus --project-name=inkubus-site
+
+# Cronus product page  ->  cronus.lilithforge.com
+wrangler pages deploy website/cronus --project-name=cronus-site
 ```
 
 The first run for a project name will offer to create the Pages project — accept it.
@@ -69,6 +74,7 @@ Cloudflare creates the matching record and provisions the cert automatically.
 
 - `lilith-forge-site`: add `lilithforge.com` and `www.lilithforge.com`
 - `inkubus-site`: add `inkubus.lilithforge.com`
+- `cronus-site`: add `cronus.lilithforge.com`
 
 API alternative (token needs **Pages: Edit**):
 
@@ -86,6 +92,7 @@ add_domain() { # $1=project  $2=domain
 add_domain lilith-forge-site lilithforge.com
 add_domain lilith-forge-site www.lilithforge.com
 add_domain inkubus-site      inkubus.lilithforge.com
+add_domain cronus-site       cronus.lilithforge.com
 ```
 
 "Always Use HTTPS" is already on at the zone level (KAN-90).

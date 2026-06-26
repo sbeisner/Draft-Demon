@@ -11,6 +11,13 @@ macos-widget/build/
 # Xcode per-user state (macOS widget project)
 xcuserdata/
 *.xcuserstate
+# local secrets / env (Supabase URL + keys)
+backend/.env
+backend/.env.local
+frontend/.env
+frontend/.env.local
+# wrangler deploy cache
+.wrangler/
 backend/draftdemon.db
 backend/lodestar.db
 backend/lodestar.db-journal

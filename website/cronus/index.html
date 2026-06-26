@@ -1,0 +1,243 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cronus — Demon of the Hours</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* Cronus runs cold: the frost-steel counterpart to Inkubus's ember.
+     The mascot mark's true proportions live in --mark-ar (w/h). */
+  :root{--mark-ar:0.86}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--font-ui);background:var(--chamber-950);color:var(--ink-150);
+    -webkit-font-smoothing:antialiased;line-height:1.6;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+  ::selection{background:var(--hour-600);color:var(--hour-300)}
+
+  body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background:radial-gradient(120% 80% at 50% 118%, rgba(56,182,214,.18), transparent 52%),
+      radial-gradient(90% 60% at 78% -8%, rgba(165,29,29,.12), transparent 60%),var(--chamber-950)}
+  body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:radial-gradient(130% 100% at 50% 45%, transparent 58%, rgba(0,0,0,.7) 100%)}
+
+  header.nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(10px);
+    background:rgba(7,10,11,.7);border-bottom:1px solid var(--oxblood-900)}
+  .nav-inner{display:flex;align-items:center;gap:14px;height:70px}
+  .brand{display:flex;align-items:center;gap:13px}
+  .brand .logo{height:40px;aspect-ratio:var(--mark-ar);flex-shrink:0;
+    background:linear-gradient(0deg,var(--hour-500),var(--hour-400) 45%,var(--hour-300));
+    -webkit-mask:url(assets/cronus-mark.png) center/contain no-repeat;
+            mask:url(assets/cronus-mark.png) center/contain no-repeat;
+    filter:drop-shadow(0 0 8px rgba(56,182,214,.5))}
+  .brand b{font-family:var(--font-display);font-weight:900;font-size:18px;letter-spacing:1px;color:var(--hour-300)}
+  .brand .by{font-family:var(--font-grimoire);font-style:italic;font-size:12px;color:var(--ink-500);margin-left:2px}
+  .nav-links{margin-left:auto;display:flex;gap:30px;align-items:center;font-size:12px;
+    letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-350);white-space:nowrap}
+  .nav-links a:hover{color:var(--hour-300)}
+  .nav-cta{font-weight:600;letter-spacing:1.5px;border:1px solid var(--hour-500);color:var(--hour-300);padding:10px 18px;border-radius:2px;transition:.2s}
+  .nav-cta:hover{background:var(--hour-600);color:var(--hour-300);box-shadow:0 0 22px rgba(56,182,214,.45)}
+
+  .btn{font-weight:600;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;padding:15px 28px;border-radius:2px;
+    border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:10px;
+    transition:transform .14s var(--ease-out),box-shadow .2s,background .2s}
+  .btn:hover{transform:translateY(-2px)}
+  .btn-primary{background:linear-gradient(180deg,var(--hour-400),var(--hour-500));color:#04141a;
+    box-shadow:0 0 0 1px rgba(56,182,214,.4),0 14px 40px rgba(56,182,214,.26)}
+  .btn-primary:hover{box-shadow:0 0 0 1px rgba(56,182,214,.6),0 0 40px rgba(56,182,214,.5)}
+  .btn-ghost{background:transparent;color:var(--ink-150);border-color:var(--char-550)}
+  .btn-ghost:hover{border-color:var(--hour-300);color:var(--hour-300)}
+
+  /* hero */
+  .hero{padding:56px 0 64px}
+  .hero-grid{display:grid;grid-template-columns:1.12fr .88fr;gap:54px;align-items:center}
+  @media(max-width:880px){.hero-grid{grid-template-columns:1fr;text-align:center}}
+  .eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;letter-spacing:3.5px;text-transform:uppercase;color:var(--sulfur-500);margin-bottom:24px}
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--hour-500)}
+  @media(max-width:880px){.eyebrow{justify-content:center}}
+  .hero h1{font-family:var(--font-display);font-weight:900;line-height:1.04;font-size:clamp(40px,6vw,72px);letter-spacing:.5px;color:var(--ink-100)}
+  .hero h1 em{font-style:normal;color:transparent;background:linear-gradient(180deg,var(--hour-300),var(--hour-400) 120%);-webkit-background-clip:text;background-clip:text}
+  .hero .epithet{font-family:var(--font-grimoire);font-style:italic;font-size:clamp(19px,2.4vw,24px);color:var(--ink-300);margin-top:14px}
+  .hero .sub{font-family:var(--font-grimoire);font-size:clamp(17px,2.1vw,20px);line-height:1.62;color:var(--ink-300);margin-top:18px;max-width:540px}
+  @media(max-width:880px){.hero .sub{margin-inline:auto}}
+  .hero-actions{display:flex;gap:16px;flex-wrap:wrap;margin-top:34px}
+  @media(max-width:880px){.hero-actions{justify-content:center}}
+  .meta{font-family:var(--font-grimoire);font-style:italic;font-size:14px;color:var(--ink-500);margin-top:20px}
+  .portrait{position:relative;display:flex;justify-content:center}
+  .portrait .mark{width:100%;max-width:360px;aspect-ratio:var(--mark-ar);
+    background:linear-gradient(0deg,var(--hour-500),var(--hour-400) 45%,var(--hour-300));
+    -webkit-mask:url(assets/cronus-mark.png) center/contain no-repeat;
+            mask:url(assets/cronus-mark.png) center/contain no-repeat;
+    filter:drop-shadow(0 0 38px rgba(56,182,214,.42)) drop-shadow(0 18px 44px rgba(0,0,0,.55))}
+  .portrait::after{content:"";position:absolute;inset:-8% -8% -14%;z-index:-1;border-radius:50%;
+    background:radial-gradient(circle,rgba(56,182,214,.22),rgba(56,182,214,0) 68%)}
+
+  section{padding:90px 0}
+  .rule{display:flex;align-items:center;justify-content:center;gap:18px;margin-bottom:18px}
+  .rule span{font-family:var(--font-ritual);font-weight:700;font-size:12px;letter-spacing:4px;text-transform:uppercase;color:var(--sulfur-500)}
+  .rule::before,.rule::after{content:"";height:1px;width:60px;background:linear-gradient(90deg,transparent,var(--hour-500),transparent)}
+  .sec-head{text-align:center;max-width:680px;margin:0 auto 52px}
+  .sec-head h2{font-family:var(--font-display);font-weight:900;font-size:clamp(28px,4.2vw,42px);letter-spacing:.5px;color:var(--ink-100)}
+  .sec-head p{font-family:var(--font-grimoire);font-size:18px;color:var(--ink-300);margin-top:14px}
+
+  /* gifts (features) */
+  .gifts{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--oxblood-900);border-radius:3px;overflow:hidden;
+    background:linear-gradient(180deg,var(--chamber-900),var(--chamber-950))}
+  @media(max-width:860px){.gifts{grid-template-columns:1fr}}
+  .gift{padding:34px 30px;border-top:1px solid var(--oxblood-900);border-left:1px solid var(--oxblood-900)}
+  .gift:nth-child(-n+3){border-top:none}
+  .gift:nth-child(3n+1){border-left:none}
+  @media(max-width:860px){.gift{border-left:none}.gift:first-child{border-top:none}}
+  .gift .n{font-family:var(--font-ritual);font-weight:700;font-size:13px;letter-spacing:3px;color:var(--hour-500);margin-bottom:16px}
+  .gift h3{font-family:var(--font-display);font-weight:700;font-size:19px;color:var(--hour-300);margin-bottom:10px;letter-spacing:.3px}
+  .gift p{font-family:var(--font-grimoire);font-size:16px;line-height:1.58;color:var(--ink-300)}
+  .gift code{font-family:var(--font-ui);font-size:13px;color:var(--hour-300);background:var(--oxblood-900);padding:1px 6px;border-radius:2px}
+
+  /* the two domains — work vs. your own time */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  @media(max-width:780px){.split{grid-template-columns:1fr}}
+  .domain-card{border:1px solid var(--char-550);border-radius:4px;padding:30px;
+    background:linear-gradient(180deg,var(--chamber-900),var(--chamber-950))}
+  .domain-card .when{font-family:var(--font-ritual);font-weight:700;font-size:12px;letter-spacing:3px;text-transform:uppercase;margin-bottom:14px}
+  .domain-card h3{font-family:var(--font-display);font-weight:700;font-size:20px;margin-bottom:8px;color:var(--ink-100)}
+  .domain-card p{font-family:var(--font-grimoire);font-size:16px;line-height:1.58;color:var(--ink-300)}
+  .domain-card.work{border-color:var(--hour-500);box-shadow:0 0 0 1px rgba(56,182,214,.16)}
+  .domain-card.work .when,.domain-card.work h3{color:var(--hour-300)}
+  .domain-card.life{border-color:var(--oxblood-500);box-shadow:0 0 0 1px rgba(165,29,29,.18)}
+  .domain-card.life .when{color:var(--sulfur-500)}.domain-card.life h3{color:var(--flame-400)}
+
+  /* the pact — pre-launch, terms TBD */
+  .pre-pact{border:1px solid var(--hour-500);border-radius:4px;padding:44px;max-width:660px;margin:0 auto;text-align:center;
+    background:linear-gradient(135deg,rgba(21,95,122,.28),var(--chamber-900) 70%);box-shadow:0 0 0 1px rgba(56,182,214,.16),0 24px 60px rgba(56,182,214,.1)}
+  .pre-pact h2{font-family:var(--font-display);font-weight:900;font-size:28px;letter-spacing:.5px;color:var(--hour-300)}
+  .pre-pact p{font-family:var(--font-grimoire);font-size:17px;color:var(--ink-300);margin:14px auto 0;max-width:520px}
+  .pre-pact .terms{margin-top:24px}
+
+  /* the waiting circle (waitlist) */
+  .subscribe-card{border:1px solid var(--oxblood-900);border-radius:4px;padding:44px;max-width:600px;margin:0 auto;text-align:center;
+    background:linear-gradient(180deg,var(--chamber-900),var(--chamber-950))}
+  .subscribe-card .mark{width:100px;aspect-ratio:var(--mark-ar);margin:0 auto 18px;
+    background:linear-gradient(0deg,var(--hour-500),var(--hour-400) 45%,var(--hour-300));
+    -webkit-mask:url(assets/cronus-mark.png) center/contain no-repeat;
+            mask:url(assets/cronus-mark.png) center/contain no-repeat;
+    filter:drop-shadow(0 0 28px rgba(56,182,214,.45))}
+  .subscribe-card h2{font-family:var(--font-display);font-weight:900;font-size:28px;letter-spacing:.5px;color:var(--hour-300)}
+  .subscribe-card p{font-family:var(--font-grimoire);font-size:17px;color:var(--ink-300);margin:12px auto 24px;max-width:460px}
+  .sub-form{display:flex;gap:12px;max-width:440px;margin:0 auto;flex-wrap:wrap;justify-content:center}
+  .sub-form input{flex:1;min-width:220px;background:var(--chamber-950);border:1px solid var(--char-550);border-radius:2px;
+    padding:14px 16px;color:var(--ink-150);font-family:var(--font-ui);font-size:14px}
+  .sub-form input:focus{outline:none;border-color:var(--hour-400);box-shadow:0 0 0 1px rgba(56,182,214,.3)}
+  .sub-msg{font-family:var(--font-grimoire);font-style:italic;font-size:14px;margin-top:14px;min-height:1.2em}
+  .sub-note{font-family:var(--font-grimoire);font-style:italic;font-size:12px;color:var(--ink-500);margin-top:10px}
+
+  footer{border-top:1px solid var(--oxblood-900);padding:48px 0;text-align:center}
+  footer .mark{font-family:var(--font-ritual);font-weight:700;letter-spacing:3px;color:var(--hour-300);font-size:14px}
+  footer .est{font-family:var(--font-grimoire);font-style:italic;color:var(--ink-500);margin-top:8px;font-size:14px}
+  footer .links{margin-top:16px;display:flex;gap:22px;justify-content:center;font-size:13px;color:var(--ink-350)}
+  footer .links a:hover{color:var(--hour-300)}
+</style></head>
+<body>
+<header class="nav"><div class="wrap nav-inner">
+  <a class="brand" href="#top"><span class="logo" role="img" aria-label="Cronus"></span><span><b>CRONUS</b> <span class="by">a Lilith Forge demon</span></span></a>
+  <nav class="nav-links">
+    <a href="#gifts">Its Gifts</a><a href="#split">Work &amp; Life</a><a href="#pact">The Pact</a>
+    <a class="nav-cta" href="#waitlist">Join the circle</a>
+  </nav>
+</div></header>
+
+<a id="top"></a>
+<section class="hero wrap"><div class="hero-grid">
+  <div class="copy">
+    <div class="eyebrow">The second-born · Demon of the Hours</div>
+    <h1>Give it your hours.<br><em>It hands them back, spent well.</em></h1>
+    <div class="epithet">The AI scheduling agent.</div>
+    <p class="sub">Hand Cronus your projects, your assignments, your chores. It reasons about when each one truly belongs in the day, blocks the time on your calendar, and keeps the job inside work hours and your life inside your own.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#waitlist">Join the waiting circle →</a>
+      <a class="btn btn-ghost" href="#gifts">See what it does</a>
+    </div>
+    <div class="meta">In the forge · macOS · forged by Lilith Forge</div>
+  </div>
+  <div class="portrait"><span class="mark" role="img" aria-label="Cronus, the demon of the hours"></span></div>
+</div></section>
+
+<section id="gifts"><div class="wrap">
+  <div class="rule"><span>Dona</span></div>
+  <div class="sec-head"><h2>What the demon does</h2><p>Six gifts, each one an hour of your day taken in hand and put to use.</p></div>
+  <div class="gifts">
+    <div class="gift"><div class="n">I</div><h3>Scheduling that reasons</h3><p>Not the next open slot — the <em>right</em> one. Cronus thinks about each task and places it where it belongs: breakfast dishes at dawn, the dinner cleanup at night, deep work when you're sharp.</p></div>
+    <div class="gift"><div class="n">II</div><h3>Every kind of task</h3><p>Work projects, academic assignments, household chores — Cronus holds all three in one mind and one calendar instead of three scattered lists.</p></div>
+    <div class="gift"><div class="n">III</div><h3>Calendar &amp; sheets in sync</h3><p>Two-way sync with Google Calendar and Google Sheets. Plans land where you already look, and changes flow back the moment the day shifts.</p></div>
+    <div class="gift"><div class="n">IV</div><h3>Time-blocking, automatic</h3><p>Once Cronus decides, it carves the blocks itself. You wake to a day already laid out — no dragging tiles around a grid at midnight.</p></div>
+    <div class="gift"><div class="n">V</div><h3>Work stays at work</h3><p>A hard line between the working day (<code>8am–4pm</code>) and your own time. The job doesn't bleed into your evening, and the laundry doesn't crash your standup.</p></div>
+    <div class="gift"><div class="n">VI</div><h3>It reads your documents</h3><p>Feed it a PDF syllabus or a project proposal. Cronus parses out the deadlines and milestones and schedules the work backward from each one.</p></div>
+  </div>
+</div></section>
+
+<section id="split"><div class="wrap">
+  <div class="rule"><span>Limen</span></div>
+  <div class="sec-head"><h2>One day, two domains.</h2><p>Cronus knows the difference between your hours and the company's — and refuses to confuse them.</p></div>
+  <div class="split">
+    <div class="domain-card work">
+      <div class="when">8am — 4pm</div>
+      <h3>The working day</h3>
+      <p>Meetings, deadlines, deep-work blocks. Cronus guards this window for the job and schedules around the calls you can't move — then closes the door at four.</p>
+    </div>
+    <div class="domain-card life">
+      <div class="when">Evenings · weekends</div>
+      <h3>Your own time</h3>
+      <p>Errands, chores, study, rest. The demon places the rest of life in the hours that are actually yours, so nothing from the office follows you home.</p>
+    </div>
+  </div>
+</div></section>
+
+<section id="pact"><div class="wrap">
+  <div class="rule"><span>Pactum</span></div>
+  <div class="sec-head"><h2>The pact is still being drawn</h2><p>Cronus is in the forge. The terms come with the summoning.</p></div>
+  <div class="pre-pact">
+    <h2>A thinking demon costs more to keep</h2>
+    <p>Unlike Inkubus, Cronus actually reasons — and reasoning has a price. Its pact is still being set in the forge, so we're not quoting a number we'd have to take back. Join the circle and you'll be first to hear the terms, and first through the gate when it opens.</p>
+    <div class="terms"><a class="btn btn-primary" href="#waitlist">Tell me when it's ready →</a></div>
+  </div>
+</div></section>
+
+<section id="waitlist"><div class="wrap">
+  <div class="subscribe-card">
+    <span class="mark" role="img" aria-label="Cronus sigil"></span>
+    <h2>Join the waiting circle</h2>
+    <p>Be summoned the moment Cronus walks free — plus the occasional word from the forge as the other demons take shape. No spam, only news worth reading.</p>
+    <form class="sub-form" id="subForm" novalidate>
+      <input type="email" id="subEmail" placeholder="you@example.com" autocomplete="email" required />
+      <button class="btn btn-primary" type="submit">Bind me to the list</button>
+    </form>
+    <div class="sub-msg" id="subMsg"></div>
+    <div class="sub-note">Placeholder — not yet wired to a mailing service (KAN-96).</div>
+  </div>
+</div></section>
+
+<footer>
+  <div class="mark">CRONUS · A LILITH FORGE DEMON</div>
+  <div class="est">Forged in MMXXVI · the second-born of the brood</div>
+  <div class="links">
+    <a href="https://lilithforge.com/">Lilith Forge</a><a href="https://inkubus.lilithforge.com/">Inkubus</a>
+    <a href="mailto:admin@lilithforge.com">admin@lilithforge.com</a>
+  </div>
+</footer>
+
+<script>
+  // Placeholder waitlist handler — validates and acknowledges, no network call.
+  // Wire to Resend / a mailing list once email is set up (KAN-96).
+  var form = document.getElementById('subForm');
+  var msg = document.getElementById('subMsg');
+  if (form){
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email = document.getElementById('subEmail').value.trim();
+      var ok = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+      if (!ok) { msg.style.color = 'var(--oxblood-500)'; msg.textContent = 'Enter a valid email to be bound to the circle.'; return; }
+      msg.style.color = 'var(--hour-300)';
+      msg.textContent = "You're in the circle. The forge will send word when Cronus wakes. ⏳";
+      form.reset();
+    });
+  }
+</script>
+</body></html>

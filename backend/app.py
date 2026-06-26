@@ -12,17 +12,29 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from database import Base, engine, get_db, ensure_schema
+from database import Base, engine, get_db, ensure_schema, ensure_default_owner
 import models
 import engine as ge
 import compile as mscompile
+import account_routes
+from deps import get_current_user, get_owned_project
 
 Base.metadata.create_all(bind=engine)
-ensure_schema()  # additively backfill columns added to models since the DB was created
+ensure_schema()           # additively backfill columns added to models since the DB was created
+ensure_default_owner()    # seed a "Local Owner" and assign it any pre-accounts projects
 app = FastAPI(title="Draft Demon API")
+# Bearer-token auth (not cookies), so CORS isn't the security boundary here, but
+# scope it to the app's own origins anyway: the Vite dev server, and the
+# packaged build which loads via file:// (Origin "null"). This still blocks
+# drive-by reads of the unauthenticated endpoints (e.g. /api/widget) from an
+# arbitrary website. Real tightening lands with the cloud backend (KAN-2).
 app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "null"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+app.include_router(account_routes.router)
 
 
 # ---- helpers -------------------------------------------------------------
@@ -90,13 +102,6 @@ def serialize(p: models.Project) -> dict:
     }
 
 
-def get_project(db: Session, pid: int) -> models.Project:
-    p = db.get(models.Project, pid)
-    if not p:
-        raise HTTPException(404, "Project not found")
-    return p
-
-
 # ---- schemas -------------------------------------------------------------
 class ProjectIn(BaseModel):
     title: str = "Untitled Project"
@@ -128,13 +133,14 @@ class MilestoneIn(BaseModel):
 
 # ---- routes --------------------------------------------------------------
 @app.get("/api/projects")
-def list_projects(db: Session = Depends(get_db)):
-    return [serialize(p) for p in db.query(models.Project).all()]
+def list_projects(db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    return [serialize(p) for p in db.query(models.Project).filter_by(user_id=user.id).all()]
 
 
 @app.post("/api/projects")
-def create_project(body: ProjectIn, db: Session = Depends(get_db)):
+def create_project(body: ProjectIn, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
     p = models.Project(
+        user_id=user.id,
         title=body.title, subtitle=body.subtitle, author=body.author, target=body.target,
         deadline=date.fromisoformat(body.deadline), start_date=date.today(),
         days_per_week=body.days_per_week, badges={}, milestones_done={}, daily_log={},
@@ -147,8 +153,8 @@ def create_project(body: ProjectIn, db: Session = Depends(get_db)):
 
 
 @app.put("/api/projects/{pid}/goal")
-def update_goal(pid: int, body: ProjectIn, db: Session = Depends(get_db)):
-    p = get_project(db, pid)
+def update_goal(pid: int, body: ProjectIn, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    p = get_owned_project(db, pid, user)
     p.title, p.subtitle, p.author = body.title, body.subtitle, body.author
     p.target = body.target
     p.deadline = date.fromisoformat(body.deadline)
@@ -159,15 +165,15 @@ def update_goal(pid: int, body: ProjectIn, db: Session = Depends(get_db)):
 
 
 @app.delete("/api/projects/{pid}")
-def delete_project(pid: int, db: Session = Depends(get_db)):
-    db.delete(get_project(db, pid))
+def delete_project(pid: int, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    db.delete(get_owned_project(db, pid, user))
     db.commit()
     return {"ok": True}
 
 
 @app.post("/api/projects/{pid}/sheets")
-def add_sheet(pid: int, body: SheetIn, db: Session = Depends(get_db)):
-    p = get_project(db, pid)
+def add_sheet(pid: int, body: SheetIn, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    p = get_owned_project(db, pid, user)
     pos = len(p.sheets)
     s = models.Sheet(project_id=p.id, title=body.title or f"Chapter {pos + 1}", position=pos)
     p.sheets.append(s)
@@ -177,14 +183,14 @@ def add_sheet(pid: int, body: SheetIn, db: Session = Depends(get_db)):
 
 
 @app.delete("/api/projects/{pid}/sheets/{sid}")
-def delete_sheet(pid: int, sid: int, db: Session = Depends(get_db)):
+def delete_sheet(pid: int, sid: int, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
     """Delete a chapter. Any written content is preserved in Cuts first, so
     removing a chapter is recoverable — same philosophy as stashing. The
     committed baseline is lowered to match, so this never registers as the
     destructive case (no doubled penalty, no streak break). The chapter's words
     do lose their XP credit, though: they've left the draft, and keeping the XP
     would make deleting-and-rewriting a free way to farm levels."""
-    p = get_project(db, pid)
+    p = get_owned_project(db, pid, user)
     sheet = next((s for s in p.sheets if s.id == sid), None)
     if not sheet:
         raise HTTPException(404, "Sheet not found")
@@ -225,9 +231,9 @@ def delete_sheet(pid: int, sid: int, db: Session = Depends(get_db)):
 
 
 @app.put("/api/projects/{pid}/sheets/{sid}")
-def save_sheet(pid: int, sid: int, body: SheetSave, db: Session = Depends(get_db)):
+def save_sheet(pid: int, sid: int, body: SheetSave, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
     """Core write path. Recomputes words and runs the accounting engine."""
-    p = get_project(db, pid)
+    p = get_owned_project(db, pid, user)
     sheet = next((s for s in p.sheets if s.id == sid), None)
     if not sheet:
         raise HTTPException(404, "Sheet not found")
@@ -254,7 +260,7 @@ class StashIn(BaseModel):
 
 
 @app.put("/api/projects/{pid}/sheets/{sid}/stash")
-def stash_from_sheet(pid: int, sid: int, body: StashIn, db: Session = Depends(get_db)):
+def stash_from_sheet(pid: int, sid: int, body: StashIn, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
     """Remove a chunk from a sheet and preserve it in Cuts — penalty-free.
 
     Because the words are preserved (not destroyed), this lowers the committed
@@ -263,7 +269,7 @@ def stash_from_sheet(pid: int, sid: int, body: StashIn, db: Session = Depends(ge
     can't keep counting — otherwise stashing would be a free XP farm), but it's
     a plain 1:1 un-credit: no doubled penalty and no broken streak. That's the
     whole point — give 'this is terrible' a safe, gentle outlet."""
-    p = get_project(db, pid)
+    p = get_owned_project(db, pid, user)
     sheet = next((s for s in p.sheets if s.id == sid), None)
     if not sheet:
         raise HTTPException(404, "Sheet not found")
@@ -303,12 +309,12 @@ def stash_from_sheet(pid: int, sid: int, body: StashIn, db: Session = Depends(ge
 
 
 @app.post("/api/projects/{pid}/cuts")
-def add_cut(pid: int, body: CutIn, db: Session = Depends(get_db)):
+def add_cut(pid: int, body: CutIn, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
     """Stash text in the Cuts bin — non-destructive removal. Stashing does NOT
     penalize: the words leave the manuscript, so daily progress falls, but
     because they're preserved this isn't 'destroying' work. The penalty only
     fires when the manuscript total drops below a *past day's* committed line."""
-    p = get_project(db, pid)
+    p = get_owned_project(db, pid, user)
     c = models.Cut(project_id=p.id, sheet_title=body.sheet_title, text=body.text,
                    words=count_words(body.text), created=datetime.now().isoformat(timespec="minutes"))
     p.cuts.append(c)
@@ -318,10 +324,10 @@ def add_cut(pid: int, body: CutIn, db: Session = Depends(get_db)):
 
 
 @app.post("/api/projects/{pid}/cuts/{cid}/restore")
-def restore_cut(pid: int, cid: int, db: Session = Depends(get_db)):
+def restore_cut(pid: int, cid: int, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
     """Pop a cut from the bin and hand its text back so the UI can place it
     (copied to clipboard) wherever the writer wants."""
-    p = get_project(db, pid)
+    p = get_owned_project(db, pid, user)
     c = next((c for c in p.cuts if c.id == cid), None)
     text = c.text if c else ""
     if c:
@@ -338,11 +344,11 @@ class IncludeIn(BaseModel):
 
 
 @app.put("/api/projects/{pid}/sheets/{sid}/include")
-def set_include(pid: int, sid: int, body: IncludeIn, db: Session = Depends(get_db)):
+def set_include(pid: int, sid: int, body: IncludeIn, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
     """Mark a chapter included/excluded from the manuscript. Toggling shifts the
     locked baseline by the same amount the total changes, so flipping a planning
     sheet in or out never awards XP nor triggers the deletion penalty."""
-    p = get_project(db, pid)
+    p = get_owned_project(db, pid, user)
     sheet = next((s for s in p.sheets if s.id == sid), None)
     if not sheet:
         raise HTTPException(404, "Sheet not found")
@@ -365,9 +371,9 @@ def set_include(pid: int, sid: int, body: IncludeIn, db: Session = Depends(get_d
 
 
 @app.get("/api/projects/{pid}/compile.docx")
-def compile_manuscript(pid: int, db: Session = Depends(get_db)):
+def compile_manuscript(pid: int, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
     """Assemble all included chapters into a standard-manuscript-format .docx."""
-    p = get_project(db, pid)
+    p = get_owned_project(db, pid, user)
     data = mscompile.build_manuscript(p.title, p.author, included_sheets(p))
     safe = re.sub(r"[^\w\- ]", "", p.title or "manuscript").strip() or "manuscript"
     return StreamingResponse(
@@ -387,8 +393,8 @@ class TaskUpdateIn(BaseModel):
 
 
 @app.post("/api/projects/{pid}/tasks")
-def add_task(pid: int, body: TaskIn, db: Session = Depends(get_db)):
-    p = get_project(db, pid)
+def add_task(pid: int, body: TaskIn, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    p = get_owned_project(db, pid, user)
     t = models.Task(project_id=p.id, text=body.text.strip(), position=len(p.tasks),
                     created=datetime.now().isoformat(timespec="minutes"))
     p.tasks.append(t)
@@ -398,8 +404,8 @@ def add_task(pid: int, body: TaskIn, db: Session = Depends(get_db)):
 
 
 @app.put("/api/projects/{pid}/tasks/{tid}")
-def update_task(pid: int, tid: int, body: TaskUpdateIn, db: Session = Depends(get_db)):
-    p = get_project(db, pid)
+def update_task(pid: int, tid: int, body: TaskUpdateIn, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    p = get_owned_project(db, pid, user)
     t = next((t for t in p.tasks if t.id == tid), None)
     if not t:
         raise HTTPException(404, "Task not found")
@@ -420,8 +426,8 @@ def update_task(pid: int, tid: int, body: TaskUpdateIn, db: Session = Depends(ge
 
 
 @app.delete("/api/projects/{pid}/tasks/{tid}")
-def delete_task(pid: int, tid: int, db: Session = Depends(get_db)):
-    p = get_project(db, pid)
+def delete_task(pid: int, tid: int, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    p = get_owned_project(db, pid, user)
     t = next((t for t in p.tasks if t.id == tid), None)
     if t:
         db.delete(t)
@@ -435,8 +441,8 @@ class WordIn(BaseModel):
 
 
 @app.post("/api/projects/{pid}/dictionary")
-def add_word(pid: int, body: WordIn, db: Session = Depends(get_db)):
-    p = get_project(db, pid)
+def add_word(pid: int, body: WordIn, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    p = get_owned_project(db, pid, user)
     w = body.word.strip()
     if w:
         d = dict(p.dictionary or {})
@@ -448,8 +454,8 @@ def add_word(pid: int, body: WordIn, db: Session = Depends(get_db)):
 
 
 @app.delete("/api/projects/{pid}/dictionary/{word}")
-def remove_word(pid: int, word: str, db: Session = Depends(get_db)):
-    p = get_project(db, pid)
+def remove_word(pid: int, word: str, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    p = get_owned_project(db, pid, user)
     d = dict(p.dictionary or {})
     d.pop(word, None)
     p.dictionary = d
@@ -459,8 +465,8 @@ def remove_word(pid: int, word: str, db: Session = Depends(get_db)):
 
 
 @app.put("/api/projects/{pid}/milestone")
-def set_milestone(pid: int, body: MilestoneIn, db: Session = Depends(get_db)):
-    p = get_project(db, pid)
+def set_milestone(pid: int, body: MilestoneIn, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    p = get_owned_project(db, pid, user)
     ms = dict(p.milestones_done or {})
     ms[str(body.index)] = body.done
     p.milestones_done = ms
@@ -487,12 +493,22 @@ class StateIn(BaseModel):
 
 
 @app.get("/api/state")
-def read_state(db: Session = Depends(get_db)):
-    return {"active_project_id": get_state(db).active_project_id}
+def read_state(db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    # app_state is a single shared row; only surface the active project to the
+    # user who actually owns it (so a second account on the same machine doesn't
+    # inherit the first's selection).
+    aid = get_state(db).active_project_id
+    if aid is not None:
+        p = db.get(models.Project, aid)
+        if p is None or p.user_id != user.id:
+            aid = None
+    return {"active_project_id": aid}
 
 
 @app.put("/api/state")
-def write_state(body: StateIn, db: Session = Depends(get_db)):
+def write_state(body: StateIn, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    if body.active_project_id is not None:
+        get_owned_project(db, body.active_project_id, user)  # 404 if not the caller's
     s = get_state(db)
     s.active_project_id = body.active_project_id
     db.commit()
@@ -504,7 +520,7 @@ def mood_for(st: dict) -> str:
 
 
 @app.get("/api/widget")
-def widget(db: Session = Depends(get_db)):
+def widget(db: Session = Depends(get_db)):  # intentionally unauthenticated — see KAN-1 follow-up
     """Everything the desktop widget needs in one call: the active project's
     goal/streak/mood plus a synced Scratchpad sheet that counts toward today."""
     s = get_state(db)
