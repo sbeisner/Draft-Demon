@@ -1,11 +1,16 @@
+/* Brand webfonts — matches the marketing site (~/lilithforge/website/inkubus):
+   Cinzel for the engraved display voice, Inter for UI, EB Garamond on hand. */
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Cinzel+Decorative:wght@700;900&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Inter:wght@400;500;600;700&display=swap");
+
 :root{
-  /* Draft Demon — fiery charcoal/ember theme */
+  /* Inkubus — fiery charcoal/ember theme */
   --bg:#17120f; --bg2:#1f1814; --bg3:#2a1f19; --line:#3d2c22;
   --txt:#f2e9e2; --txt2:#b9a89c; --txt3:#8a766a;
   --accent:#ff7a18; --accent2:#e0560f; --good:#43c46a; --warn:#ffab40; --bad:#e5331b;
   --paper:#1c1611; --ring:#3d2c22;
   --glow:rgba(255,122,24,.35);
-  --font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --font-display:"Cinzel","Iowan Old Style","Palatino Linotype",Georgia,serif;
   --font-write:"Iowan Old Style","Palatino Linotype",Georgia,serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -20,7 +25,7 @@ button{font-family:inherit}
 .dots{display:flex;gap:7px}.dot{width:11px;height:11px;border-radius:50%}
 .dot.r{background:#ff5f57}.dot.y{background:#febc2e}.dot.g{background:#28c840}
 .brand{display:flex;align-items:center}
-.brand .wordmark{height:20px;width:auto;display:block}
+.brand .wordmark{font-family:var(--font-display);font-weight:900;font-size:16px;letter-spacing:1px;color:var(--accent);line-height:1}
 .spacer{flex:1}
 .tb-btn{background:var(--bg3);border:1px solid var(--line);color:var(--txt2);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px}
 .tb-btn:hover{color:var(--txt);border-color:var(--accent)}
@@ -51,7 +56,7 @@ button{font-family:inherit}
 
 /* library */
 .library{width:210px;background:var(--bg2);border-right:1px solid var(--line);flex-shrink:0;overflow-y:auto}
-.col-head{padding:12px 14px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--txt3);display:flex;justify-content:space-between;align-items:center}
+.col-head{padding:12px 14px 8px;font-family:var(--font-display);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--txt3);display:flex;justify-content:space-between;align-items:center}
 .add{cursor:pointer;color:var(--txt3);font-size:16px;line-height:1;background:none;border:none}
 .add:hover{color:var(--accent)}
 .proj{position:relative;padding:10px 14px;cursor:pointer;border-left:2px solid transparent}
@@ -124,7 +129,7 @@ button{font-family:inherit}
 .editor.rt{text-indent:2em}
 .editor.rt:empty{text-indent:0}
 .editor.rt:empty:before{content:attr(data-placeholder);color:var(--txt3)}
-.editor.rt h2{font-family:var(--font-ui);font-size:22px;color:#fff;margin:.4em 0;text-align:center;text-indent:0}
+.editor.rt h2{font-family:var(--font-display);font-weight:700;font-size:22px;color:#fff;margin:.4em 0;text-align:center;text-indent:0}
 .editor.rt blockquote{border-left:3px solid var(--line);margin:.5em 0;padding-left:14px;color:var(--txt2);font-style:italic;text-indent:0}
 .editor.rt hr{border:none;text-align:center;margin:1.1em 0;text-indent:0}
 .editor.rt hr:after{content:"#";color:var(--txt3);font-family:var(--font-ui)}
@@ -133,7 +138,7 @@ button{font-family:inherit}
 /* goals panel */
 .goals{width:300px;background:var(--bg2);border-left:1px solid var(--line);flex-shrink:0;overflow-y:auto}
 .gsec{padding:16px;border-bottom:1px solid var(--line)}
-.gsec h3{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--txt3);margin-bottom:12px}
+.gsec h3{font-family:var(--font-display);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--txt3);margin-bottom:12px}
 .today{text-align:center}
 .ring-wrap{position:relative;width:150px;height:150px;margin:4px auto 10px}
 .ring-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
@@ -204,7 +209,7 @@ button{font-family:inherit}
 /* modal */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:50}
 .modal{background:var(--bg2);border:1px solid var(--line);border-radius:14px;width:440px;max-width:92vw;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
-.modal h2{font-size:18px;margin-bottom:4px}
+.modal h2{font-family:var(--font-display);font-weight:700;font-size:18px;margin-bottom:4px}
 .modal p.hint{color:var(--txt3);font-size:13px;margin-bottom:18px}
 .field{margin-bottom:14px}
 .field label{display:block;font-size:12px;color:var(--txt2);margin-bottom:6px}

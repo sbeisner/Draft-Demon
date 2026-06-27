@@ -64,5 +64,8 @@
     "dmg": {
       "title": "Draft Demon ${version}"
     }
+  },
+  "dependencies": {
+    "resend": "^6.14.0"
   }
 }

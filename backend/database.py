@@ -1,6 +1,7 @@
 """SQLite + SQLAlchemy setup. The DB file lives next to this module so it
 travels with the app and is easy to find / back up / delete during dev."""
 import os
+from datetime import datetime
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
@@ -61,3 +62,30 @@ def ensure_schema():
                 if default is not None:
                     ddl += f" DEFAULT {default}"
                 conn.execute(text(ddl))
+
+
+def ensure_default_owner():
+    """Backfill ownership when an existing single-user DB gains accounts.
+
+    `ensure_schema()` adds `projects.user_id` as a *nullable* column (the
+    additive ALTER can't enforce NOT NULL or pick an owner), so pre-existing
+    projects start with `user_id IS NULL` and would be invisible once routes
+    require an authenticated owner. This seeds one password-less placeholder
+    user ("Local Owner") and assigns it every orphaned project. The placeholder
+    has no `supabase_user_id`; the first real sign-in *adopts* it (see deps.py)
+    so the existing work lands under that account. Idempotent and a no-op once
+    any user exists. Run once at startup, after ensure_schema()."""
+    with engine.begin() as conn:
+        existing = conn.execute(text("SELECT id FROM users LIMIT 1")).first()
+        if existing is None:
+            owner_id = conn.execute(
+                text("INSERT INTO users (display_name, plan, plan_status, created_at) "
+                     "VALUES ('Local Owner', 'free', 'active', :ts)"),
+                {"ts": datetime.utcnow().isoformat()},
+            ).lastrowid
+        else:
+            owner_id = existing[0]
+        conn.execute(
+            text("UPDATE projects SET user_id = :oid WHERE user_id IS NULL"),
+            {"oid": owner_id},
+        )

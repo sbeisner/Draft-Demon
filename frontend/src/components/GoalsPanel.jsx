@@ -86,7 +86,7 @@ export default function GoalsPanel({ project, onEditGoal, onToggleMilestone, onA
               {t.done ? "✓" : ""}
             </button>
             <span className="tk-text" onClick={() => onToggleTask(t.id, !t.done)}>{t.text}</span>
-            <button className="tk-del" onClick={() => onDeleteTask(t.id)} title="Delete task">✕</button>
+            <button className="tk-del" onClick={() => { if (window.confirm("Delete this task?")) onDeleteTask(t.id); }} title="Delete task">✕</button>
           </div>
         ))}
       </div>

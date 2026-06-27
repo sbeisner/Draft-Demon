@@ -26,11 +26,11 @@ export default function GoalModal({ initial, isNew, currentWords = 0, dictionary
   }, [target, deadline, dpw, currentWords, isNew]);
 
   return (
-    <div className="overlay" onClick={(e) => e.target.classList.contains("overlay") && onClose()}>
+    <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <h2>{isNew ? "New writing project" : "Project goal"}</h2>
         <p className="hint">
-          Set the target and deadline. Draft Demon divides the work into a daily goal and re-balances
+          Set the target and deadline. Inkubus divides the work into a daily goal and re-balances
           it as you go.
         </p>
         <div className="two">

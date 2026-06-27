@@ -45,7 +45,7 @@ const wordBoundary = (full, start, len) => {
   return !isWordChar(before) && !isWordChar(after);
 };
 
-export default function Editor({ sheet, projState, sessionWords, onSave, onStash, onToggleInclude }) {
+export default function Editor({ sheet, projState, sessionWords, onSave, onStash, onToggleInclude, onToast }) {
   const [title, setTitle] = useState(sheet.title);
   const [words, setWords] = useState(sheet.words || 0);
   const [confirm, setConfirm] = useState(null); // { removed, pendingHtml }
@@ -142,7 +142,9 @@ export default function Editor({ sheet, projState, sessionWords, onSave, onStash
     if (drop >= GUARD_WORDS) {
       // Big one-shot deletion — intercept. Revert the surface and ask.
       const removed = removedText(htmlToText(lastHtml.current), htmlToText(html));
+      const top = ref.current.scrollTop;
       ref.current.innerHTML = lastHtml.current; // visually undo
+      ref.current.scrollTop = top; // keep the reader where they were
       setConfirm({ removed, pendingHtml: html });
       return;
     }
@@ -196,7 +198,7 @@ export default function Editor({ sheet, projState, sessionWords, onSave, onStash
   const stashSelection = () => {
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed || !sel.toString().trim()) {
-      alert("Select the text you want to set aside first.");
+      onToast?.("Select the text you want to set aside first.", "bad");
       return;
     }
     const removed = sel.toString();
@@ -209,7 +211,9 @@ export default function Editor({ sheet, projState, sessionWords, onSave, onStash
   };
 
   const commit = (html) => {
+    const top = ref.current.scrollTop;
     ref.current.innerHTML = html;
+    ref.current.scrollTop = top; // preserve scroll across the DOM swap
     lastHtml.current = html;
     lastWords.current = countWords(html);
     setWords(lastWords.current);
@@ -444,7 +448,7 @@ export default function Editor({ sheet, projState, sessionWords, onSave, onStash
       />
 
       {confirm && (
-        <div className="overlay" onClick={(e) => e.target.classList.contains("overlay") && setConfirm(null)}>
+        <div className="overlay" onClick={(e) => e.target === e.currentTarget && setConfirm(null)}>
           <div className="modal">
             <div className="cut-mascot"><div className="frame"><Inkubus mood="angry" size={84} /></div></div>
             <h2>Inkubus sees that — {countWords(confirm.removed)} words</h2>

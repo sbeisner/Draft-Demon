@@ -1,5 +1,0 @@
-# Files Wrangler should NOT upload to Cloudflare Pages.
-# The macOS build is ~114 MB and exceeds Pages' 25 MiB per-file limit;
-# host it on R2 / GitHub Releases and point DOWNLOAD_URL at it instead.
-downloads/
-*.dmg

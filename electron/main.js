@@ -1,6 +1,6 @@
 // Electron main process: launches the FastAPI backend as a child process,
 // opens the main editor window, and manages a menu-bar tray icon.
-const { app, BrowserWindow, Tray, Menu, MenuItem, ipcMain, nativeImage, session } = require("electron");
+const { app, BrowserWindow, Tray, Menu, MenuItem, ipcMain, nativeImage, session, safeStorage, shell } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
@@ -120,6 +120,68 @@ function createTray() {
   ]));
   tray.on("click", showMain); // left-click opens the main window
 }
+
+// ---------- secure token storage ----------
+// Supabase's session (incl. the long-lived refresh token) is persisted here,
+// encrypted at rest via the OS keychain (safeStorage), instead of in the
+// renderer's localStorage where any injected script could read it. Backs the
+// custom storage adapter in supabaseClient.js. Stored as { key: {e, v} } where
+// `e` marks whether `v` (base64) is keychain-encrypted.
+const SECURE_FILE = () => path.join(app.getPath("userData"), "secure-store.json");
+function readSecure() {
+  try { return JSON.parse(fs.readFileSync(SECURE_FILE(), "utf8")); } catch { return {}; }
+}
+function writeSecure(obj) {
+  try { fs.writeFileSync(SECURE_FILE(), JSON.stringify(obj), { mode: 0o600 }); } catch (e) { console.error("secure write failed", e); }
+}
+ipcMain.handle("secure-get", (_e, key) => {
+  const rec = readSecure()[key];
+  if (!rec) return null;
+  try {
+    const buf = Buffer.from(rec.v, "base64");
+    return rec.e ? safeStorage.decryptString(buf) : buf.toString("utf8");
+  } catch { return null; }
+});
+ipcMain.handle("secure-set", (_e, key, value) => {
+  const store = readSecure();
+  const canEncrypt = safeStorage.isEncryptionAvailable();
+  const buf = canEncrypt ? safeStorage.encryptString(String(value)) : Buffer.from(String(value), "utf8");
+  store[key] = { e: canEncrypt, v: buf.toString("base64") };
+  writeSecure(store);
+  return true;
+});
+ipcMain.handle("secure-delete", (_e, key) => {
+  const store = readSecure();
+  delete store[key];
+  writeSecure(store);
+  return true;
+});
+
+// ---------- OAuth deep links (Apple/Google via Supabase) ----------
+// The OAuth flow opens in the system browser and Supabase redirects back to
+// draftdemon://auth-callback?code=... . We register that scheme, forward the
+// callback URL to the renderer, and the renderer exchanges the code for a
+// session. A callback that arrives before the window is ready is buffered.
+let pendingAuthUrl = null;
+function forwardAuthCallback(url) {
+  if (!url || !url.startsWith("draftdemon://")) return;
+  if (mainWindow && !mainWindow.webContents.isLoading()) {
+    mainWindow.webContents.send("auth-callback", url);
+    mainWindow.show();
+    mainWindow.focus();
+  } else {
+    pendingAuthUrl = url;            // delivered once the window finishes loading
+    showMain();
+  }
+}
+app.setAsDefaultProtocolClient("draftdemon");
+app.on("open-url", (event, url) => { event.preventDefault(); forwardAuthCallback(url); });
+
+ipcMain.handle("open-external", (_e, url) => shell.openExternal(url));
+// Renderer signals it's ready; flush any buffered auth callback.
+ipcMain.on("renderer-ready", (e) => {
+  if (pendingAuthUrl) { e.sender.send("auth-callback", pendingAuthUrl); pendingAuthUrl = null; }
+});
 
 // ---------- ipc ----------
 ipcMain.on("open-main-window", showMain);

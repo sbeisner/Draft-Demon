@@ -19,7 +19,7 @@ Key idea behind the anti-deletion design:
                       deeper here is the "delete everything" trap and it costs XP
                       at 2x and breaks the streak.
 """
-from datetime import date
+from datetime import date, datetime
 from sqlalchemy import String, Integer, Text, Date, ForeignKey, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.mutable import MutableDict
@@ -30,9 +30,44 @@ from database import Base
 MutJSON = MutableDict.as_mutable(JSON)
 
 
+def _utcnow_iso() -> str:
+    return datetime.utcnow().isoformat()
+
+
+class User(Base):
+    """A local profile keyed to a Supabase identity.
+
+    Credentials (password, OAuth, reset, MFA) live in Supabase — this row is
+    just the app-side anchor that project data hangs off of, plus entitlement
+    fields the billing epic (KAN-3) will drive. `supabase_user_id` is the JWT
+    `sub`; it's nullable only so the pre-auth "Local Owner" placeholder created
+    when migrating an existing single-user DB can be adopted on first sign-in.
+    """
+    __tablename__ = "users"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    supabase_user_id: Mapped[str | None] = mapped_column(String, unique=True, index=True, nullable=True)
+    email: Mapped[str | None] = mapped_column(String, nullable=True)  # synced from the verified token
+    display_name: Mapped[str] = mapped_column(String, default="")
+    created_at: Mapped[str] = mapped_column(String, default=_utcnow_iso)
+
+    # entitlement foundation — data only this increment; KAN-3 (Stripe/IAP) drives it.
+    plan: Mapped[str] = mapped_column(String, default="free")            # free | pro
+    plan_status: Mapped[str] = mapped_column(String, default="active")   # active|trialing|past_due|canceled
+    plan_source: Mapped[str | None] = mapped_column(String, nullable=True)  # stripe | app_store | null
+    plan_expires_at: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    projects: Mapped[list["Project"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+
+
 class Project(Base):
     __tablename__ = "projects"
     id: Mapped[int] = mapped_column(primary_key=True)
+    # Owner. Nullable at the column level so ensure_schema() can add it to
+    # existing DBs (which it then backfills via ensure_default_owner); the app
+    # layer treats every project as owned once auth is in front of the routes.
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     title: Mapped[str] = mapped_column(String, default="Untitled Project")
     subtitle: Mapped[str] = mapped_column(String, default="Novel")
 
@@ -57,6 +92,7 @@ class Project(Base):
     daily_log: Mapped[dict] = mapped_column(MutJSON, default=dict)  # "YYYY-MM-DD" -> net words
     dictionary: Mapped[dict] = mapped_column(MutJSON, default=dict)  # custom spelling words {word: True}
 
+    user: Mapped["User"] = relationship(back_populates="projects")
     sheets: Mapped[list["Sheet"]] = relationship(
         back_populates="project", cascade="all, delete-orphan", order_by="Sheet.position"
     )

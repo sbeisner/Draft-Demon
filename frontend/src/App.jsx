@@ -4,6 +4,9 @@ import Editor from "./components/Editor.jsx";
 import GoalsPanel from "./components/GoalsPanel.jsx";
 import GoalModal from "./components/GoalModal.jsx";
 import Inkubus from "./components/Inkubus.jsx";
+import AuthScreen from "./components/AuthScreen.jsx";
+import AccountModal from "./components/AccountModal.jsx";
+import { useAuth } from "./AuthContext.jsx";
 
 const fmt = (n) => (n ?? 0).toLocaleString();
 const countWords = (t) => {
@@ -21,6 +24,8 @@ const NEW_DEFAULT = {
 };
 
 export default function App() {
+  const { status, profile, signOut, refreshProfile } = useAuth();
+  const [showAccount, setShowAccount] = useState(false);
   const [projects, setProjects] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [activeSheetId, setActiveSheetId] = useState(null);
@@ -68,7 +73,16 @@ export default function App() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  // Load once signed in; clear state on sign-out so a different account never
+  // sees the previous user's projects.
+  useEffect(() => {
+    if (status === "authed") {
+      load();
+    } else if (status === "anon") {
+      setProjects([]); setActiveId(null); setActiveSheetId(null); setError(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   // keep the active project id reachable from the once-registered dict listener
   const activeIdRef = useRef(null);
@@ -169,10 +183,14 @@ export default function App() {
     toast(include ? "✓ Counts toward your manuscript" : "✕ Excluded — planning only", "good");
   };
 
-  const compile = () => {
+  const compile = async () => {
     if (!active) return;
-    window.open(api.compileUrl(active.id), "_blank");
     toast("📄 Compiling manuscript…", "good");
+    try {
+      await api.compile(active.id);
+    } catch {
+      toast("Compile failed — is the backend running?", "bad");
+    }
   };
 
   const addTask = async (text) => {
@@ -264,12 +282,24 @@ export default function App() {
   };
 
   // ---- render ----
+  if (status === "loading") {
+    return (
+      <div className="shell">
+        <div className="center-msg">
+          <Inkubus mood="neutral" size={120} className="welcome-art" />
+          <div>Waking Inkubus…</div>
+        </div>
+      </div>
+    );
+  }
+  if (status === "anon") return <AuthScreen />;
+
   if (error) {
     return (
       <div className="shell">
         <div className="center-msg">
           <Inkubus mood="neutral" size={140} className="welcome-art" />
-          <div>⚠ Can't reach the Draft Demon backend.</div>
+          <div>⚠ Can't reach the Inkubus backend.</div>
           <div style={{ fontSize: 12 }}>Boot everything with: <code>npm run dev</code></div>
           <button className="btn ghost" style={{ marginTop: 12, width: "auto", padding: "8px 20px" }} onClick={() => load()}>Retry</button>
         </div>
@@ -286,7 +316,7 @@ export default function App() {
       <div className="titlebar">
         <div className="dots"><span className="dot r" /><span className="dot y" /><span className="dot g" /></div>
         <span className="brand">
-          <img className="wordmark" src={`${import.meta.env.BASE_URL}draft-demon-text.png`} alt="Draft Demon" />
+          <span className="wordmark">INKUBUS</span>
         </span>
         <div className="spacer" />
         <button className="tb-btn" onClick={() => setModal({ isNew: true, initial: NEW_DEFAULT })}>＋ New Project</button>
@@ -296,6 +326,18 @@ export default function App() {
         </button>
         <button className="tb-btn" onClick={logToday} title="Demo: log today's goal">⚡ Log today</button>
         <button className={`tb-btn ${focusMode ? "on" : ""}`} onClick={toggleFocus} title="Focus mode — hide all panels (Esc to exit)">◳ Focus</button>
+        {profile && (
+          <button className="tb-btn tb-acct" title="Account settings" onClick={() => setShowAccount(true)}
+            style={{ marginLeft: 6, display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ color: profile.plan === "pro" ? "var(--accent)" : "var(--txt3)" }}>
+              {profile.plan === "pro" ? "★ Pro" : "Free"}
+            </span>
+            <span style={{ maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {profile.display_name || profile.email}
+            </span>
+          </button>
+        )}
+        <button className="tb-btn" onClick={() => signOut()} title="Sign out">⎋ Sign out</button>
       </div>
 
       <div className={`app ${focusMode ? "focus" : ""}`}>
@@ -373,6 +415,7 @@ export default function App() {
             onSave={save}
             onStash={stash}
             onToggleInclude={toggleInclude}
+            onToast={toast}
           />
         ) : (
           <div className="editor-wrap">
@@ -405,6 +448,15 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {showAccount && (
+        <AccountModal
+          profile={profile}
+          onClose={() => setShowAccount(false)}
+          onProfileChanged={refreshProfile}
+          onToast={toast}
+        />
+      )}
 
       {modal && (
         <GoalModal
