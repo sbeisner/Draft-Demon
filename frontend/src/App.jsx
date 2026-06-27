@@ -314,8 +314,8 @@ export default function App() {
   return (
     <div className="shell">
       <div className="titlebar">
-        <div className="dots"><span className="dot r" /><span className="dot y" /><span className="dot g" /></div>
         <span className="brand">
+          <span className="sigil" style={{ "--sigil-img": `url(${import.meta.env.BASE_URL}inkubus-mark.png)` }} />
           <span className="wordmark">INKUBUS</span>
         </span>
         <div className="spacer" />
