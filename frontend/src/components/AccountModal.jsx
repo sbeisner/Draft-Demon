@@ -44,7 +44,7 @@ export default function AccountModal({ profile, onClose, onProfileChanged, onToa
   };
 
   return (
-    <div className="overlay" onClick={(e) => e.target.classList.contains("overlay") && onClose()}>
+    <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <h2>Account</h2>
         <p className="hint">Manage your profile, password, and subscription.</p>

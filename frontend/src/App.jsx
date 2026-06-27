@@ -299,7 +299,7 @@ export default function App() {
       <div className="shell">
         <div className="center-msg">
           <Inkubus mood="neutral" size={140} className="welcome-art" />
-          <div>⚠ Can't reach the Draft Demon backend.</div>
+          <div>⚠ Can't reach the Inkubus backend.</div>
           <div style={{ fontSize: 12 }}>Boot everything with: <code>npm run dev</code></div>
           <button className="btn ghost" style={{ marginTop: 12, width: "auto", padding: "8px 20px" }} onClick={() => load()}>Retry</button>
         </div>
@@ -316,7 +316,7 @@ export default function App() {
       <div className="titlebar">
         <div className="dots"><span className="dot r" /><span className="dot y" /><span className="dot g" /></div>
         <span className="brand">
-          <img className="wordmark" src={`${import.meta.env.BASE_URL}draft-demon-text.png`} alt="Draft Demon" />
+          <span className="wordmark">INKUBUS</span>
         </span>
         <div className="spacer" />
         <button className="tb-btn" onClick={() => setModal({ isNew: true, initial: NEW_DEFAULT })}>＋ New Project</button>
@@ -415,6 +415,7 @@ export default function App() {
             onSave={save}
             onStash={stash}
             onToggleInclude={toggleInclude}
+            onToast={toast}
           />
         ) : (
           <div className="editor-wrap">

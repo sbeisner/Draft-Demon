@@ -107,7 +107,7 @@ export default function AuthScreen() {
             <button type="button" className="btn ghost" onClick={() => oauth("google")}>Continue with Google</button>
 
             <div style={{ textAlign: "center", marginTop: 16, fontSize: 12, color: "var(--txt2)" }}>
-              {isSignup ? "Already have an account?" : "New to Draft Demon?"}{" "}
+              {isSignup ? "Already have an account?" : "New to Inkubus?"}{" "}
               <a
                 href="#"
                 style={{ color: "var(--accent)" }}
