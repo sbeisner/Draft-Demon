@@ -1,7 +1,7 @@
 {
-  "name": "draft-demon",
-  "version": "0.0.0",
-  "description": "Draft Demon — goal-aligned writing app. FastAPI backend, React frontend, Electron shell.",
+  "name": "inkubus",
+  "version": "0.1.0",
+  "description": "Inkubus — goal-aligned writing app. FastAPI backend, React frontend, Electron shell.",
   "main": "electron/main.js",
   "engines": {
     "node": ">=18"
@@ -16,8 +16,10 @@
     "dev": "concurrently -k -n backend,web,electron -c blue,green,magenta \"npm:dev:backend\" \"npm:dev:frontend\" \"npm:dev:electron\"",
     "dev:web": "concurrently -k -n backend,web -c blue,green \"npm:dev:backend\" \"npm:dev:frontend\"",
     "build:frontend": "cd frontend && npm run build",
-    "dist": "npm run build:frontend && electron-builder",
-    "dist:dir": "npm run build:frontend && electron-builder --dir",
+    "build:backend": "bash scripts/build-backend.sh",
+    "make-icon": "bash scripts/make-icon.sh",
+    "dist": "npm run build:backend && npm run build:frontend && electron-builder",
+    "dist:dir": "npm run build:backend && npm run build:frontend && electron-builder --dir",
     "start": "ELECTRON_DEV= electron ."
   },
   "devDependencies": {
@@ -27,8 +29,9 @@
     "wait-on": "^8.0.1"
   },
   "build": {
-    "appId": "com.draftdemon.app",
-    "productName": "Draft Demon",
+    "appId": "com.lilithforge.inkubus",
+    "productName": "Inkubus",
+    "afterPack": "build/after-pack.js",
     "directories": {
       "output": "release"
     },
@@ -38,16 +41,8 @@
     ],
     "extraResources": [
       {
-        "from": "backend",
-        "to": "backend",
-        "filter": [
-          "**/*",
-          "!**/__pycache__/**",
-          "!*.db",
-          "!*.db-journal",
-          "!*.db-wal",
-          "!*.db-shm"
-        ]
+        "from": "backend/dist/inkubus-backend",
+        "to": "inkubus-backend"
       },
       {
         "from": "frontend/dist",
@@ -56,13 +51,23 @@
     ],
     "mac": {
       "category": "public.app-category.productivity",
-      "icon": "electron/assets/icon.png",
+      "icon": "electron/assets/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "electron/entitlements.mac.plist",
+      "entitlementsInherit": "electron/entitlements.mac.plist",
+      "notarize": {
+        "teamId": "LZ4WN944FU"
+      },
       "target": [
-        "dmg"
+        {
+          "target": "dmg",
+          "arch": ["arm64"]
+        }
       ]
     },
     "dmg": {
-      "title": "Draft Demon ${version}"
+      "title": "Inkubus ${version}"
     }
   },
   "dependencies": {
