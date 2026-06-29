@@ -13,12 +13,12 @@ PyInstaller, so **no Python is required on the end user's machine**.
   1. A **Developer ID Application** certificate imported into your login keychain.
      (An "Apple Development" certificate is *not* sufficient for notarization.)
      Verify with: `security find-identity -v -p codesigning` — you should see a line
-     like `"Developer ID Application: … (LZ4WN944FU)"`.
+     like `"Developer ID Application: … (PDL24STF5H)"`.
   2. Notarytool credentials exported in the shell before building:
      ```sh
      export APPLE_ID="you@example.com"
      export APPLE_APP_SPECIFIC_PASSWORD="abcd-efgh-ijkl-mnop"   # appleid.apple.com → App-Specific Passwords
-     export APPLE_TEAM_ID="LZ4WN944FU"
+     export APPLE_TEAM_ID="PDL24STF5H"
      ```
 
 ## Build

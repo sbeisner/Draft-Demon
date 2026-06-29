@@ -57,7 +57,7 @@
       "entitlements": "electron/entitlements.mac.plist",
       "entitlementsInherit": "electron/entitlements.mac.plist",
       "notarize": {
-        "teamId": "LZ4WN944FU"
+        "teamId": "PDL24STF5H"
       },
       "target": [
         {
