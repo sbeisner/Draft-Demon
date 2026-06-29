@@ -56,9 +56,7 @@
       "gatekeeperAssess": false,
       "entitlements": "electron/entitlements.mac.plist",
       "entitlementsInherit": "electron/entitlements.mac.plist",
-      "notarize": {
-        "teamId": "PDL24STF5H"
-      },
+      "notarize": true,
       "target": [
         {
           "target": "dmg",
