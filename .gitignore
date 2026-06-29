@@ -1,9 +1,15 @@
 node_modules/
 backend/.venv/
+backend/.build-venv/
+# PyInstaller backend build output
+backend/build/
+backend/dist/
 # build / packaging output
 release/
 macos-widget/build/
 *.dmg
+# generated icon source (rebuild via scripts/make-icon.sh)
+electron/assets/icon.iconset/
 # preview / screenshot PNGs and sample exports live at the repo root
 # (functional assets are in subdirs)
 /*.png

@@ -13,8 +13,23 @@ const ROOT = path.join(__dirname, "..");
 // extraResources under Contents/Resources; in dev they live in the repo root.
 const RESOURCES = app.isPackaged ? process.resourcesPath : ROOT;
 const BACKEND_DIR = path.join(RESOURCES, "backend");
+// In a packaged build the backend is a standalone PyInstaller bundle (no Python
+// required on the user's machine); in dev we run uvicorn from the repo backend.
+const FROZEN_BACKEND = path.join(RESOURCES, "inkubus-backend", "inkubus-backend");
 const FRONTEND_DIST = path.join(RESOURCES, "frontend", "dist");
-const ICON_PATH = path.join(__dirname, "assets", "icon.png");
+const ICON_PATH = path.join(__dirname, "assets", "icon-1024.png");
+
+// Public (non-secret) runtime config bundled with the app. Loaded into the
+// process env at startup so BOTH the preload (frontend Supabase client) and the
+// backend pick it up. Never put secrets (e.g. RESEND_API_KEY) here.
+(function loadAppConfig() {
+  try {
+    const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, "app-config.json"), "utf8"));
+    for (const k of ["SUPABASE_URL", "SUPABASE_ANON_KEY"]) {
+      if (cfg[k] && !process.env[k]) process.env[k] = cfg[k];
+    }
+  } catch { /* dev: values come from .env / Vite instead */ }
+})();
 
 let backend = null;
 let mainWindow = null;
@@ -26,15 +41,19 @@ function pythonBin() {
   return fs.existsSync(venv) ? venv : (process.env.PYTHON || "python3");
 }
 function startBackend() {
-  const env = { ...process.env };
+  // SUPABASE_URL/ANON_KEY are already in process.env via loadAppConfig (or .env in dev).
+  const env = { ...process.env, BACKEND_PORT: String(BACKEND_PORT) };
   if (app.isPackaged) {
     // Keep the installed app's data out of the dev repo: write the SQLite DB to
-    // the app's userData dir (~/Library/Application Support/Draft Demon) instead
-    // of inside the read-only bundle (and away from dev's backend/draftdemon.db).
+    // the app's userData dir (~/Library/Application Support/Inkubus) instead of
+    // inside the read-only bundle (and away from dev's backend/draftdemon.db).
     env.DRAFTDEMON_DB = path.join(app.getPath("userData"), "draftdemon.db");
+    // Standalone PyInstaller executable — no Python on the user's machine needed.
+    backend = spawn(FROZEN_BACKEND, [], { env, stdio: "inherit" });
+  } else {
+    backend = spawn(pythonBin(), ["-m", "uvicorn", "app:app", "--port", String(BACKEND_PORT)],
+      { cwd: BACKEND_DIR, env, stdio: "inherit" });
   }
-  backend = spawn(pythonBin(), ["-m", "uvicorn", "app:app", "--port", String(BACKEND_PORT)],
-    { cwd: BACKEND_DIR, env, stdio: "inherit" });
   backend.on("error", (e) => console.error("Backend failed to start:", e));
 }
 function waitForBackend(cb, tries = 0) {
@@ -188,7 +207,7 @@ ipcMain.on("open-main-window", showMain);
 
 // ---------- lifecycle ----------
 app.whenReady().then(() => {
-  // Use the Draft Demon logo as the dock icon while running (dev/unpackaged).
+  // Use the Inkubus sigil as the dock icon while running (dev/unpackaged).
   try { if (process.platform === "darwin" && app.dock) app.dock.setIcon(nativeImage.createFromPath(ICON_PATH)); } catch {}
   try { session.defaultSession.setSpellCheckerLanguages(["en-US"]); } catch {}
   // In dev (`npm run dev`), the backend is launched by the `dev:backend` script
