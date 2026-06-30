@@ -47,9 +47,22 @@ function startBackend() {
     // Keep the installed app's data out of the dev repo: write the SQLite DB to
     // the app's userData dir (~/Library/Application Support/Inkubus) instead of
     // inside the read-only bundle (and away from dev's backend/draftdemon.db).
-    env.DRAFTDEMON_DB = path.join(app.getPath("userData"), "draftdemon.db");
+    const userData = app.getPath("userData");
+    // On a fresh install this dir may not exist yet; SQLite won't create missing
+    // parents, so make it ourselves or the backend dies on first launch.
+    try { fs.mkdirSync(userData, { recursive: true }); } catch (e) { console.error("userData mkdir failed", e); }
+    env.DRAFTDEMON_DB = path.join(userData, "draftdemon.db");
+    // Capture the frozen backend's stdout/stderr to a log file. Launched from
+    // Finder there's no console to inherit, so a crash would otherwise be
+    // invisible — this gives us something to read when "can't reach backend".
+    const logPath = path.join(userData, "backend.log");
+    let stdio = "inherit";
+    try {
+      const fd = fs.openSync(logPath, "a");
+      stdio = ["ignore", fd, fd];
+    } catch (e) { console.error("backend log open failed", e); }
     // Standalone PyInstaller executable — no Python on the user's machine needed.
-    backend = spawn(FROZEN_BACKEND, [], { env, stdio: "inherit" });
+    backend = spawn(FROZEN_BACKEND, [], { env, stdio });
   } else {
     backend = spawn(pythonBin(), ["-m", "uvicorn", "app:app", "--port", String(BACKEND_PORT)],
       { cwd: BACKEND_DIR, env, stdio: "inherit" });

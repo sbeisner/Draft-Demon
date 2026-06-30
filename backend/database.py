@@ -6,6 +6,13 @@ from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 DB_PATH = os.environ.get("DRAFTDEMON_DB", os.path.join(os.path.dirname(__file__), "draftdemon.db"))
+# The packaged app points DRAFTDEMON_DB at ~/Library/Application Support/Inkubus,
+# which doesn't exist on a fresh install — SQLite won't create missing parent
+# dirs and would crash the backend on first launch ("unable to open database
+# file"). Create the directory ourselves so the very first run works.
+_db_dir = os.path.dirname(os.path.abspath(DB_PATH))
+if _db_dir:
+    os.makedirs(_db_dir, exist_ok=True)
 engine = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
