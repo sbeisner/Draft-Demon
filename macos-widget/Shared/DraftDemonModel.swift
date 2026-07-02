@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-// Shared Draft Demon colors — this file is compiled into BOTH the app and the
+// Shared Inkubus colors — this file is compiled into BOTH the app and the
 // widget targets, so the theme is available everywhere.
 extension Color {
     init(hex: UInt) {
@@ -18,7 +18,7 @@ extension Color {
     static let ddText2  = Color(hex: 0xc7b6a8)   // light warm secondary
 }
 
-// Mirrors the JSON returned by the Draft Demon backend's GET /api/widget.
+// Mirrors the JSON returned by the Inkubus backend's GET /api/widget.
 // JSONDecoder uses .convertFromSnakeCase, so daily_goal -> dailyGoal etc.
 
 struct WidgetResponse: Codable {
@@ -43,7 +43,7 @@ enum DraftDemonAPI {
     static let endpoint = URL(string: "http://localhost:8741/api/widget")!
 
     /// Fetches the current widget snapshot from the local backend.
-    /// Returns nil if the backend (the Draft Demon app) isn't running.
+    /// Returns nil if the backend (the Inkubus app) isn't running.
     static func fetch() async -> WidgetResponse? {
         var req = URLRequest(url: endpoint)
         req.timeoutInterval = 8

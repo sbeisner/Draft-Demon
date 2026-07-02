@@ -131,9 +131,9 @@ ipcMain.on("sync-dictionary", (e, words) => {
 function createTray() {
   const icon = nativeImage.createFromPath(path.join(__dirname, "assets", "tray.png"));
   tray = new Tray(icon);
-  tray.setToolTip("Draft Demon");
+  tray.setToolTip("Inkubus");
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: "Open Draft Demon", click: showMain },
+    { label: "Open Inkubus", click: showMain },
     { type: "separator" },
     { label: "Quit", click: () => { app.isQuitting = true; app.quit(); } },
   ]));

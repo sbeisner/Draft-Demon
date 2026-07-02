@@ -114,7 +114,7 @@ struct DDWidgetView: View {
                     .font(.caption).bold().foregroundStyle(Color.ddFlame)
             }
             VStack(alignment: .leading, spacing: 6) {
-                Text(r.title ?? "Draft Demon").font(.headline).foregroundStyle(Color.ddText).lineLimit(1)
+                Text(r.title ?? "Inkubus").font(.headline).foregroundStyle(Color.ddText).lineLimit(1)
                 Text(s.inDeficit ? "⚠ Below your locked total — write to recover." : s.task)
                     .font(.caption).foregroundStyle(Color.ddText2).lineLimit(2)
                 Spacer(minLength: 2)
@@ -133,7 +133,7 @@ struct DDWidgetView: View {
     var offline: some View {
         VStack(spacing: 8) {
             InkubusBadge(mood: "happy", size: 56)
-            Text("Open Draft Demon").font(.caption).bold().foregroundStyle(Color.ddText)
+            Text("Open Inkubus").font(.caption).bold().foregroundStyle(Color.ddText)
             Text("Start the app to sync").font(.system(size: 10)).foregroundStyle(Color.ddText2)
         }
     }
@@ -146,7 +146,7 @@ struct DraftDemonWidget: Widget {
         StaticConfiguration(kind: kind, provider: DDProvider()) { entry in
             DDWidgetView(entry: entry)
         }
-        .configurationDisplayName("Draft Demon")
+        .configurationDisplayName("Inkubus")
         .description("Today's writing goal, your streak, and Inkubus's mood.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }

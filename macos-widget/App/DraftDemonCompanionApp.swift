@@ -21,8 +21,8 @@ struct ContentView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Color.ddAccent, lineWidth: 2))
 
-            Text("Draft Demon Widget").font(.title2).bold()
-            Text("Add the widget from the desktop/Notification Center gallery.\nKeep the Draft Demon app running so the widget can sync.")
+            Text("Inkubus Widget").font(.title2).bold()
+            Text("Add the widget from the desktop/Notification Center gallery.\nKeep the Inkubus app running so the widget can sync.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .font(.callout)
@@ -36,7 +36,7 @@ struct ContentView: View {
             Button("Test backend connection") {
                 Task {
                     let r = await DraftDemonAPI.fetch()
-                    status = r == nil ? "❌ Backend not reachable (is Draft Demon running?)"
+                    status = r == nil ? "❌ Backend not reachable (is Inkubus running?)"
                                        : "✅ Connected — \(r?.title ?? "project") loaded"
                 }
             }

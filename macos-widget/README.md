@@ -44,7 +44,7 @@ Then in Xcode:
 2. Choose the **DraftDemonCompanion** scheme and press ▶ Run once (this registers
    the widget with the system).
 3. Right-click the desktop → **Edit Widgets** (or click the date/time in the menu
-   bar to open Notification Center → Edit Widgets), find **Draft Demon**, and drag
+   bar to open Notification Center → Edit Widgets), find **Inkubus**, and drag
    the small or medium widget onto your desktop or Notification Center.
 
 ## Manual setup (no XcodeGen)

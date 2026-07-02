@@ -22,7 +22,7 @@ from deps import get_current_user, get_owned_project
 Base.metadata.create_all(bind=engine)
 ensure_schema()           # additively backfill columns added to models since the DB was created
 ensure_default_owner()    # seed a "Local Owner" and assign it any pre-accounts projects
-app = FastAPI(title="Draft Demon API")
+app = FastAPI(title="Inkubus API")
 # Bearer-token auth (not cookies), so CORS isn't the security boundary here, but
 # scope it to the app's own origins anyway: the Vite dev server, and the
 # packaged build which loads via file:// (Origin "null"). This still blocks

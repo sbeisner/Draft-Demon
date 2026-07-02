@@ -321,7 +321,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Draft Demon";
+				INFOPLIST_KEY_CFBundleDisplayName = "Inkubus";
 				INFOPLIST_KEY_LSUIElement = NO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -340,7 +340,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Draft Demon";
+				INFOPLIST_KEY_CFBundleDisplayName = "Inkubus";
 				INFOPLIST_KEY_LSUIElement = NO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
